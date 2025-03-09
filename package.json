@@ -1,0 +1,28 @@
+{
+  "name": "marabeh",
+  "version": "1.0.0",
+  "description": "Marabeh Application Node.js (Online Store)",
+  "main": "src/app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon --env-file=.env src/app.js"
+  },
+  "keywords": [
+    "Node.js",
+    "Express",
+    "Socket.io"
+  ],
+  "author": "Mohammed Al-Akhras",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "express": "^4.21.2",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.12.0",
+    "nodemailer": "^6.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
