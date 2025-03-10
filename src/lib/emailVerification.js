@@ -2,16 +2,23 @@ const nodemailer = require("nodemailer");
 
 const smtpTransport = nodemailer.createTransport({
   service: "Gmail",
+  host: "smtp.gmail.com",
+    port: 465, // الأفضل مع SSL
+  secure: true, // ضروري مع المنفذ 465
 
   auth: {
     type: "OAuth2",
     user: process.env.GMAIL,
     // pass: process.env.GPASSWORD,
+
     clientId: process.env.GClientID,
     accessToken: process.env.GAccessToken,
     clientSecret: process.env.GClientSecret,
     refreshToken: process.env.GRefreshToken,
   },
+  tls: {
+    rejectUnauthorized: true // زيادة الأمان
+  }
 });
 
 const fillMailBody = (req, res, user, verificationCode) => {
@@ -20,8 +27,17 @@ const fillMailBody = (req, res, user, verificationCode) => {
   //   )}/api/users/verify/${verificationCode}`;
 
   const mailOptions = {
+    from: {
+      name: "مرابح",
+      address: process.env.GMAIL,
+    },
     to: user.email,
-    from: '"مرابح" mhmad.alakras.uk@gmail.com',
+    priority: "high", // أولوية عالية
+    headers: {
+      "X-Entity-Ref-ID": Date.now().toString(), // تجنب التكرار
+      "List-Unsubscribe": `<https://murabah.com/unsubscribe>, <mailto:unsubscribe@murabah.com>`, // إلغاء الاشتراك
+      "X-Mailer": "CustomMailer (v1.0)" // تعريف البريد
+    },
     subject: "تأكيد البريد الإلكتروني - منصة مرابح",
     text: `مرحباً ${user.username || "عميلنا الكريم"},
   
