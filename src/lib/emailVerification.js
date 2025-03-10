@@ -3,7 +3,7 @@ const nodemailer = require("nodemailer");
 const smtpTransport = nodemailer.createTransport({
   service: "Gmail",
   host: "smtp.gmail.com",
-    port: 465, // الأفضل مع SSL
+  port: 465, // الأفضل مع SSL
   secure: true, // ضروري مع المنفذ 465
 
   auth: {
@@ -17,8 +17,8 @@ const smtpTransport = nodemailer.createTransport({
     refreshToken: process.env.GRefreshToken,
   },
   tls: {
-    rejectUnauthorized: true // زيادة الأمان
-  }
+    rejectUnauthorized: true, // زيادة الأمان
+  },
 });
 
 const fillMailBody = (req, res, user, verificationCode) => {
@@ -28,28 +28,28 @@ const fillMailBody = (req, res, user, verificationCode) => {
 
   const mailOptions = {
     from: {
-      name: "مرابح",
+      name: "تطبيق Marabeh",
       address: process.env.GMAIL,
     },
     to: user.email,
     priority: "high", // أولوية عالية
-    headers: {
-      "X-Entity-Ref-ID": Date.now().toString(), // تجنب التكرار
-      "List-Unsubscribe": `<https://murabah.com/unsubscribe>, <mailto:unsubscribe@murabah.com>`, // إلغاء الاشتراك
-      "X-Mailer": "CustomMailer (v1.0)" // تعريف البريد
-    },
-    subject: "تأكيد البريد الإلكتروني - منصة مرابح",
+    // headers: {
+    //   "X-Entity-Ref-ID": Date.now().toString(), // تجنب التكرار
+    //   "List-Unsubscribe": `<https://murabah.com/unsubscribe>, <mailto:unsubscribe@murabah.com>`, // إلغاء الاشتراك
+    //   "X-Mailer": "CustomMailer (v1.0)" // تعريف البريد
+    // },
+    subject: "تأكيد البريد الإلكتروني - منصة Marabeh",
     text: `مرحباً ${user.username || "عميلنا الكريم"},
   
-  شكراً لانضمامك إلى منصة مرابح. لتأكيد بريدك الإلكتروني، يرجى استخدام رمز التحقق التالي:
+  شكراً لانضمامك إلى منصة Marabeh. لتأكيد بريدك الإلكتروني، يرجى استخدام رمز التحقق التالي:
   
   ${verificationCode}
   
   هذا الرمز صالح لمدة 24 ساعة.
   إذا لم تقم بطلب تأكيد البريد الإلكتروني، يرجى تجاهل هذه الرسالة.
   
-  © 2024 مرابح. جميع الحقوق محفوظة.
-  إلغاء الاشتراك: https://murabah.com/unsubscribe`,
+  © 2024 Marabeh. جميع الحقوق محفوظة.
+ `,
     html: `<!DOCTYPE html>
   <html lang="ar" dir="rtl">
   <head>
@@ -134,13 +134,13 @@ const fillMailBody = (req, res, user, verificationCode) => {
     <table class="container" width="100%" cellspacing="0" cellpadding="0">
       <tr>
         <td class="header">
-          <img src="https://murabah.com/assets/logo.png" alt="شعار مرابح">
+          <p> Marabeh </p>
         </td>
       </tr>
       <tr>
         <td class="content">
           <h1>مرحباً ${user.username || "عميلنا الكريم"}</h1>
-          <p>شكراً لانضمامك إلى منصة مرابح. لتأكيد بريدك الإلكتروني، يرجى استخدام رمز التحقق أدناه:</p>
+          <p>شكراً لانضمامك إلى منصة Marabeh. لتأكيد بريدك الإلكتروني، يرجى استخدام رمز التحقق أدناه:</p>
           <div class="verification-box">
             <p>رمز التحقق الخاص بك:</p>
             <div class="verification-code">${verificationCode}</div>
@@ -151,10 +151,8 @@ const fillMailBody = (req, res, user, verificationCode) => {
       </tr>
       <tr>
         <td class="footer">
-          <p>© 2024 مرابح. جميع الحقوق محفوظة.</p>
-          <p>
-            <a href="https://murabah.com/unsubscribe">إلغاء الاشتراك</a>
-          </p>
+          <p>© 2024 Marabeh. جميع الحقوق محفوظة.</p>
+       
         </td>
       </tr>
     </table>
