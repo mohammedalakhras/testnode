@@ -10,12 +10,11 @@ const {
   fillMailBody,
   sendVerificationEmail,
 } = require("../src/lib/emailVerification.js");
-var rand, mailOptions, host, link;
 
 /**
  * @description Sign up by [email,username,fullname,password]
  * @route /api/users/signup
- * @method GET
+ * @method POST
  * @access public
  */
 
@@ -34,13 +33,21 @@ router.post("/signup", async (req, res) => {
 
     const salt = bcrypt.genSaltSync(10);
     req.body.password = bcrypt.hashSync(req.body.password, salt);
+
+    //Generate Verification Code
     const verificationCode = Math.floor(
       100000 + Math.random() * 900000
     ).toString();
 
+    //set 24 houres to expire
+    const verificationCodeExpires = new Date();
+
+    verificationCodeExpires.setHours(verificationCodeExpires.getHours() + 24);
+
     const user = new UserModel({
       ...req.body,
       verificationCode,
+      verificationCodeExpires,
     });
 
     const result = await user.save();
@@ -75,6 +82,12 @@ router.post("/signup", async (req, res) => {
   }
 });
 
+/**
+ * @description verify email using rercived code
+ * @route /api/users//verify/:code
+ * @method POST
+ * @access public
+ */
 router.post("/verify/:code", async (req, res) => {
   // const { token } = req.params;
 
@@ -97,16 +110,22 @@ router.post("/verify/:code", async (req, res) => {
   try {
     const user = await UserModel.findOne({
       email: req.body.email,
-      verificationCode: code,
+      // verificationCode: code,
       activated: false,
     });
     if (!user) {
-      return res
-        .status(404)
-        .json({ msg: "Verification failed: Invalid or expired code." });
+      return res.status(404).json({ msg: "User not found." });
     }
+    if (user.verificationCode !== code) {
+      return res.status(400).json({ msg: "Invalid verification code" });
+    }
+    if (user.verificationCodeExpires < new Date()) {
+      return res.status(400).json({ msg: "Verification code has expired" });
+    }
+
     user.activated = true;
     user.verificationCode = undefined;
+    user.verificationCodeExpires = undefined;
     await user.save();
     res.status(200).json({ msg: "Email verified successfully" });
   } catch (error) {
@@ -115,20 +134,38 @@ router.post("/verify/:code", async (req, res) => {
   }
 });
 
+/**
+ * @description re-send email verification code
+ * @route /api/users/verifyEmail
+ * @method POST
+ * @access public
+ */
 router.post("/verifyEmail", async (req, res) => {
   const { email } = req.body;
-  const verificationCode = Math.floor(
-    100000 + Math.random() * 900000
-  ).toString();
+  const verificationCode = Math.floor(10000 + Math.random() * 90000).toString();
+
+  const verificationCodeExpires = new Date();
+  console.log(verificationCodeExpires);
+
+  verificationCodeExpires.setHours(verificationCodeExpires.getHours() + 24);
 
   const user = await UserModel.findOneAndUpdate(
     { email: email },
-    { verificationCode: verificationCode }
+    {
+      verificationCode: verificationCode,
+      verificationCodeExpires: verificationCodeExpires,
+    }
   );
   if (!user) {
     return res.status(404).json({
       success: false,
       msg: "Email is not Registered",
+    });
+  }
+  if (user.activated === true) {
+    return res.status(409).json({
+      success: false,
+      msg: "User Activated Previously, So We will not send Activation Email.",
     });
   }
 
@@ -137,6 +174,128 @@ router.post("/verifyEmail", async (req, res) => {
   return res.status(200).json({
     success: true,
     msg: "Email is Sent",
+  });
+});
+
+/**
+ * @description Sign in using [email, username, phone] and password
+ * @route /api/users/signin
+ * @method POST
+ * @access public
+ */
+
+router.post("/signin", async (req, res) => {
+  try {
+    const { identifier, password } = req.body;
+
+    if (!identifier || !password) {
+      return res.status(400).json({
+        success: false,
+        msg: "All Fields is Required",
+      });
+    }
+
+    const user = await UserModel.findOne({
+      $or: [
+        { email: String(identifier).toLowerCase() },
+        { username: String(identifier).toLowerCase() },
+        { phone: identifier },
+      ],
+    }).select("+password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        msg: "User Not Exsits ",
+      });
+    }
+
+    if (!user.activated) {
+      return res.status(403).json({
+        success: false,
+        msg: "Account is not Activated",
+      });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        msg: "incorrect Password",
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        id: user._id,
+        email: user.email,
+        username: user.username,
+      },
+      process.env.JWT_SECRETE_KEY
+      // { expiresIn: "24h" }
+    );
+
+    const { password: _, ...userData } = user._doc;
+
+    return res.status(200).json({
+      success: true,
+      msg: "signin successfully",
+      token,
+      userData,
+    });
+  } catch (error) {
+    console.error("Sigin in Error", error);
+    return res.status(500).json({
+      success: false,
+      msg: "Server Error",
+    });
+  }
+});
+
+const { verifyToken } = require("../middlewares/verifyToken.js");
+
+/**
+ * @description Get authenticated user data
+ * @route /api/users/me
+ * @method GET
+ * @access private
+ */
+router.get("/me", verifyToken, async (req, res) => {
+  try {
+    const user = await UserModel.findById(req.user.id).select(
+      "-password -verificationCode -verificationCodeExpires"
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        msg: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      msg: "Server error",
+    });
+  }
+});
+
+/**
+ * @description Validate token
+ * @route /api/users/validate-token
+ * @method POST
+ * @access private
+ */
+router.post("/validate-token", verifyToken, (req, res) => {
+  res.status(200).json({
+    success: true,
+    user: req.user,
   });
 });
 module.exports = router;

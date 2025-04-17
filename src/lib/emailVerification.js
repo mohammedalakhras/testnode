@@ -15,6 +15,7 @@ const smtpTransport = nodemailer.createTransport({
     accessToken: process.env.GAccessToken,
     clientSecret: process.env.GClientSecret,
     refreshToken: process.env.GRefreshToken,
+    accessToken: process.env.GAccessToken
   },
   tls: {
     rejectUnauthorized: true, // زيادة الأمان
@@ -28,30 +29,26 @@ const fillMailBody = (req, res, user, verificationCode) => {
 
   const mailOptions = {
     from: {
-      name: "تطبيق Marabeh",
+      name: "تطبيق BuyTx",
       address: process.env.GMAIL,
     },
     to: user.email,
     priority: "high", // أولوية عالية
-    // headers: {
-    //   "X-Entity-Ref-ID": Date.now().toString(), // تجنب التكرار
-    //   "List-Unsubscribe": `<https://murabah.com/unsubscribe>, <mailto:unsubscribe@murabah.com>`, // إلغاء الاشتراك
-    //   "X-Mailer": "CustomMailer (v1.0)" // تعريف البريد
-    // },
-    subject: "تأكيد البريد الإلكتروني - منصة Marabeh",
-    text: `مرحباً ${user.username || "عميلنا الكريم"},
-  
-  شكراً لانضمامك إلى منصة Marabeh. لتأكيد بريدك الإلكتروني، يرجى استخدام رمز التحقق التالي:
-  
-  ${verificationCode}
-  
-  هذا الرمز صالح لمدة 24 ساعة.
-  إذا لم تقم بطلب تأكيد البريد الإلكتروني، يرجى تجاهل هذه الرسالة.
-  
-  © 2024 Marabeh. جميع الحقوق محفوظة.
- `,
+
+    subject: "Email Verification - BuyTx Platform",
+    text: `Hello ${user.username || "Valued User"},
+
+Thank you for joining BuyTx. To verify your email, please use the following verification code:
+
+${verificationCode}
+
+This code is valid for 24 hours.
+If you did not request email verification, please ignore this message.
+
+© 2024 BuyTx. All rights reserved.
+`,
     html: `<!DOCTYPE html>
-  <html lang="ar" dir="rtl">
+  <html lang="ar" dir="rtl" layout-dir="rtl">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -64,6 +61,7 @@ const fillMailBody = (req, res, user, verificationCode) => {
         background-color: #f5f5f5;
         -webkit-text-size-adjust: none;
         -ms-text-size-adjust: none;
+       
       }
       .container {
         max-width: 600px;
@@ -134,13 +132,13 @@ const fillMailBody = (req, res, user, verificationCode) => {
     <table class="container" width="100%" cellspacing="0" cellpadding="0">
       <tr>
         <td class="header">
-          <p> Marabeh </p>
+          <p> BuyTx </p>
         </td>
       </tr>
       <tr>
-        <td class="content">
+        <td class="content" align="">
           <h1>مرحباً ${user.username || "عميلنا الكريم"}</h1>
-          <p>شكراً لانضمامك إلى منصة Marabeh. لتأكيد بريدك الإلكتروني، يرجى استخدام رمز التحقق أدناه:</p>
+          <p>شكراً لانضمامك إلى منصة BuyTx. لتأكيد بريدك الإلكتروني، يرجى استخدام رمز التحقق أدناه:</p>
           <div class="verification-box">
             <p>رمز التحقق الخاص بك:</p>
             <div class="verification-code">${verificationCode}</div>
@@ -151,7 +149,7 @@ const fillMailBody = (req, res, user, verificationCode) => {
       </tr>
       <tr>
         <td class="footer">
-          <p>© 2024 Marabeh. جميع الحقوق محفوظة.</p>
+          <p>© 2024 BuyTx. جميع الحقوق محفوظة.</p>
        
         </td>
       </tr>
@@ -159,7 +157,6 @@ const fillMailBody = (req, res, user, verificationCode) => {
   </body>
   </html>`,
   };
-
   return mailOptions;
 };
 

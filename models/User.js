@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const joi = require("joi");
 const jwt = require("jsonwebtoken");
-const Joi = require("joi");
 
 const UserSchema = new mongoose.Schema(
   {
@@ -31,6 +30,7 @@ const UserSchema = new mongoose.Schema(
         "Invalid username format",
       ],
     },
+
     fullName: {
       type: String,
       required: true,
@@ -44,6 +44,10 @@ const UserSchema = new mongoose.Schema(
       required: function () {
         return this.authProvider.includes("local");
       },
+    },
+    phoneVisible: {
+      type: Boolean,
+      default: false,
     },
     googleId: {
       type: String,
@@ -72,6 +76,9 @@ const UserSchema = new mongoose.Schema(
       type: String,
       minlength: 6,
       maxlength: 6,
+    },
+    verificationCodeExpires: {
+      type: Date,
     },
 
     bio: {
@@ -103,6 +110,10 @@ const UserSchema = new mongoose.Schema(
       type: String, //CDN
       trim: true,
     },
+    cover: {
+      type: String, //CDN
+      trim: true,
+    },
     rate: {
       stars: {
         type: Number,
@@ -119,6 +130,14 @@ const UserSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    sections: [
+      {
+        order: { type: Number, required: true },
+        name: { type: String, required: true },
+        content: { type: String, required: true },
+      },
+    ],
+
     followers: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -137,7 +156,7 @@ const UserSchema = new mongoose.Schema(
       default: "user",
     },
     lastLoginTime: {
-      type: Date,
+      type: String,
     },
     numberOfReports: {
       //all reports( accepted(alerts) or not)
