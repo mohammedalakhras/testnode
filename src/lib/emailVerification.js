@@ -7,15 +7,15 @@ const smtpTransport = nodemailer.createTransport({
   secure: true, // ضروري مع المنفذ 465
 
   auth: {
-    type: "OAuth2",
+    // type: "OAuth2",
     user: process.env.GMAIL,
-    // pass: process.env.GPASSWORD,
+    pass: process.env.GPASSWORD,
 
-    clientId: process.env.GClientID,
-    accessToken: process.env.GAccessToken,
-    clientSecret: process.env.GClientSecret,
-    refreshToken: process.env.GRefreshToken,
-    accessToken: process.env.GAccessToken
+    // clientId: process.env.GClientID,
+    // accessToken: process.env.GAccessToken,
+    // clientSecret: process.env.GClientSecret,
+    // refreshToken: process.env.GRefreshToken,
+    // accessToken: process.env.GAccessToken
   },
   tls: {
     rejectUnauthorized: true, // زيادة الأمان
