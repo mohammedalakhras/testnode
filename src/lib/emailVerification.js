@@ -45,7 +45,7 @@ ${verificationCode}
 This code is valid for 24 hours.
 If you did not request email verification, please ignore this message.
 
-© 2024 BuyTx. All rights reserved.
+© ${new Date().getFullYear()} BuyTx. All rights reserved.
 `,
     html: `<!DOCTYPE html>
   <html lang="ar" dir="rtl" layout-dir="rtl">
@@ -149,7 +149,7 @@ If you did not request email verification, please ignore this message.
       </tr>
       <tr>
         <td class="footer">
-          <p>© 2024 BuyTx. جميع الحقوق محفوظة.</p>
+          <p>© ${new Date().getFullYear()}  BuyTx. جميع الحقوق محفوظة.</p>
        
         </td>
       </tr>

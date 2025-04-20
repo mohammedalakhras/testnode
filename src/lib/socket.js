@@ -21,14 +21,13 @@ const startSocket = (server) => {
       if (!user) {
         return next(new Error("Authentication error: User not found"));
       }
-      // إرفاق بيانات المستخدم بالسوكيت
       socket.userId = user._id;
       socket.username = user.username;
       socket.userData = {
         _id: user._id,
         email: user.email,
         fullName: user.fullName,
-       lastLoginTime:user.lastLoginTime
+        lastLoginTime: user.lastLoginTime,
       };
 
       next();
@@ -42,6 +41,21 @@ const startSocket = (server) => {
     console.log(`User ${socket.userId} connected (Socket ID: ${socket.id})`);
 
     socket.join(socket.userId.toString());
+
+    //new
+    socket.on("registerFCM", async (token) => {
+      await UserModel.findByIdAndUpdate(socket.userId, {
+        $addToSet: { fcmTokens: token },
+      });
+    });
+
+    socket.on("logout", async (token) => {
+      await UserModel.findByIdAndUpdate(socket.userId, {
+        $pull: { fcmTokens: token },
+      });
+    });
+
+    //end new
 
     socket.on("signin", async () => {
       console.log(`User ${socket.userData.fullName} signed in`);
@@ -78,12 +92,11 @@ const startSocket = (server) => {
     });
 
     socket.on("sendMessage", async (data) => {
+      console.log("data", data);
 
-      console.log('data',data);
-      
       const messageWithSender = {
-        content:data.content,
-        receiver:new mongoose.Types.ObjectId(data.receiver),
+        content: data.content,
+        receiver: new mongoose.Types.ObjectId(data.receiver),
         sender: socket.userData,
         fullName: socket.userData.fullName,
         createdAt: new Date(),
@@ -94,12 +107,11 @@ const startSocket = (server) => {
         sender: messageWithSender.sender._id,
         receiver: messageWithSender.receiver,
         content: messageWithSender.content,
-        
       });
       const savedMsg = await message.save();
       messageWithSender._id = savedMsg._id;
 
-      // جلب بيانات المستلم (الاسم والصورة)
+   
       const receiverData = await UserModel.findById(
         messageWithSender.receiver,
         "photo fullName lastLoginTime"
@@ -108,7 +120,8 @@ const startSocket = (server) => {
       const updatedConversation = {
         chatPartner: messageWithSender.receiver,
         fullName:
-          messageWithSender.sender._id.toString() !== messageWithSender.receiver.toString()
+          messageWithSender.sender._id.toString() !==
+          messageWithSender.receiver.toString()
             ? receiverData.fullName
             : "Saved Messages",
         lastMessage: messageWithSender.content,
@@ -122,24 +135,20 @@ const startSocket = (server) => {
         updatedConversation
       );
 
-      
-      
-
       io.to(messageWithSender.sender._id.toString()).emit(
         "LoadNewMessage",
         messageWithSender
       );
-      io.to(messageWithSender.receiver.toString()).emit(
-        "receive",
-        {...messageWithSender,lastLoginTime:socket.userData.lastLoginTime}
-      );
+      io.to(messageWithSender.receiver.toString()).emit("receive", {
+        ...messageWithSender,
+        lastLoginTime: socket.userData.lastLoginTime,
+      });
 
       // التحقق مما إذا كان المستلم متصلاً (بوجوده في غرفته)
       const receiverRoom = io.sockets.adapter.rooms.get(
         messageWithSender.receiver.toString()
       );
       if (receiverRoom && receiverRoom.size > 0) {
-        // تحديث حالة الرسالة لتصبح delivered
         await MessageModel.findByIdAndUpdate(savedMsg._id, {
           status: "delivered",
         });
@@ -167,7 +176,7 @@ const startSocket = (server) => {
       const res = await MessageModel.findByIdAndUpdate(message._id, {
         status: "read",
       });
-      
+
       io.to(message.sender._id.toString()).emit("changeMessageStatus", {
         id: message._id,
         status: "read",
@@ -175,19 +184,22 @@ const startSocket = (server) => {
     });
 
     socket.on("disconnect", async () => {
-      console.log(socket.id, "has disconnected");
+      const room = io.sockets.adapter.rooms.get(socket.userId.toString());
 
-      const datetime = new Date().toUTCString();
-      await UserModel.findByIdAndUpdate(socket.userId, {
-        $set: {
-          lastLoginTime: datetime,
-        },
-      });
+      if (!room || room.size === 0) {
+        const lastSeen = new Date().toUTCString();
+        await UserModel.findByIdAndUpdate(socket.userId, {
+          $set: {
+            lastLoginTime: lastSeen,
+          },
+        });
 
-      socket.broadcast.emit("lastSeenUpdate", {
-        partnerId: socket.userId.toString(),
-        lastSeen: datetime,
-      });
+        socket.broadcast.emit("lastSeenUpdate", {
+          partnerId: socket.userId.toString(),
+          lastSeen: lastSeen,
+        });
+        console.log(socket.id, "has disconnected");
+      }
     });
   });
 };

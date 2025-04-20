@@ -74,10 +74,18 @@ const UserSchema = new mongoose.Schema(
     },
     verificationCode: {
       type: String,
-      minlength: 6,
-      maxlength: 6,
+      minlength: 5,
+      maxlength: 5,
     },
     verificationCodeExpires: {
+      type: Date,
+    },
+    passwordResetCode: {
+      type: String,
+      minlength: 5,
+      maxlength: 5,
+    },
+    passwordResetExpires: {
       type: Date,
     },
 
@@ -232,6 +240,7 @@ function validateRegisterUser(obj) {
       is: joi.array().items(joi.string().valid("google")).has("google"),
       then: joi.required(),
     }),
+    fcmTokens: [{ type: String }],
   });
 
   return schema.validate(obj);
