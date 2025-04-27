@@ -26,6 +26,8 @@ const {
   verifyResetCode,
 } = require("../middlewares/auth/verifyCode/verifyResetCode.js");
 const { resetPassword } = require("../middlewares/auth/resetPassword.js");
+const { updateProfile } = require("../middlewares/auth/update/updateProfile.js");
+const { confirmNewEmail } = require("../middlewares/auth/update/confirmNewEmail.js");
 
 /**
  * @description Sign up by [email,username,fullname,password]
@@ -108,5 +110,23 @@ router.post("/validate-token", verifyToken, async (req, res) => {
     user: req.user,
   });
 });
+
+/**
+ * @description Update Profile Info
+ * @route /api/users/update
+ * @method POST
+ * @access private
+ */
+router.post("/update", verifyToken, updateProfile);
+
+
+
+/**
+ * @description Update Profile Info
+ * @route /api/users/update
+ * @method POST
+ * @access private
+ */
+router.post("/confirmNewEmail", verifyToken, confirmNewEmail);
 
 module.exports = router;

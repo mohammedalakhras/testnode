@@ -43,17 +43,17 @@ const startSocket = (server) => {
     socket.join(socket.userId.toString());
 
     //new
-    socket.on("registerFCM", async (token) => {
-      await UserModel.findByIdAndUpdate(socket.userId, {
-        $addToSet: { fcmTokens: token },
-      });
-    });
+    // socket.on("registerFCM", async (token) => {
+    //   await UserModel.findByIdAndUpdate(socket.userId, {
+    //     $addToSet: { fcmTokens: token },
+    //   });
+    // });
 
-    socket.on("logout", async (token) => {
-      await UserModel.findByIdAndUpdate(socket.userId, {
-        $pull: { fcmTokens: token },
-      });
-    });
+    // socket.on("logout", async (token) => {
+    //   await UserModel.findByIdAndUpdate(socket.userId, {
+    //     $pull: { fcmTokens: token },
+    //   });
+    // });
 
     //end new
 

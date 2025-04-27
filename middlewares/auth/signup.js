@@ -24,6 +24,11 @@ exports.signup = async (req, res) => {
     const salt = bcrypt.genSaltSync(10);
     req.body.password = bcrypt.hashSync(req.body.password, salt);
 
+    // Sanitize the phone number: remove '+' if it exists at the start
+    if (req.body.phone && req.body.phone.startsWith("+")) {
+      req.body.phone = req.body.phone.slice(1);
+    }
+
     //Generate Verification Code
     const verificationCode = Math.floor(
       100000 + Math.random() * 900000

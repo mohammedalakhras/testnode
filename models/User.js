@@ -183,7 +183,29 @@ const UserSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+
+    //for change email
+    pendingEmail: {
+      type: String,
+      lowercase: true,
+      trim: true,
+      minlength: 5,
+      maxlength: 100,
+      match: [
+        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+        "Invalid email format",
+      ],
+    },
+    pendingEmailVerificationCode: {
+      type: String,
+      minlength: 5,
+      maxlength: 5,
+    },
+    pendingEmailVerificationExpires: {
+      type: Date,
+    },
   },
+
   {
     timestamps: true,
   }
@@ -215,7 +237,7 @@ function validateRegisterUser(obj) {
 
     phone: joi
       .string()
-      .pattern(/^[0-9]{8,15}$/)
+      .pattern(/^\+?[0-9]{8,15}$/)
       .when("authProvider", {
         is: joi.array().items(joi.string().valid("local")).has("local"),
         then: joi.required(),
@@ -255,10 +277,27 @@ function validateLoginByUsername(obj) {
   return schema.validate(obj);
 }
 
+function validateProfileUpdate(data) {
+  const updateProfileSchema = joi.object({
+    fullName: joi.string().min(5).max(100),
+    username: joi
+      .string()
+      .min(5)
+      .max(25)
+      .pattern(/[/^[a-z0-9]{1,20}[_\.]{0,1}[a-z0-9]{1,20}$/, "username"),
+    phone: joi.string().pattern(/^\+?[0-9]{8,15}$/),
+    phoneVisible: joi.boolean(),
+    password: joi.string().min(6).max(128),
+    email: joi.string().email().min(5).max(100),
+  });
+  return updateProfileSchema.validate(data);
+}
+
 const UserModel = new mongoose.model("User", UserSchema);
 
 module.exports = {
   UserModel,
   validateLoginByUsername,
   validateRegisterUser,
+  validateProfileUpdate,
 };
