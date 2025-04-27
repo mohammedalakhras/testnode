@@ -15,13 +15,12 @@ exports.signup = async (req, res) => {
     if (error) return res.status(400).json({ msg: error.details[0].message });
 
     const existingUser = await UserModel.findOne({
-      email: req.body.email,
-      username: req.body.username,
+      $or: [{ email: req.body.email }, { username: req.body.username }],
     });
     if (existingUser)
       return res.status(400).json({
         success: false,
-        msg: "Email is already registered",
+        msg: "Email or Username is already registered",
       });
 
     const salt = bcrypt.genSaltSync(10);
