@@ -3,12 +3,20 @@ const router = express.Router();
 const { verifyToken } = require("../middlewares/token/verifyToken.js");
 const { ProductModel, validateProduct } = require("../models/Product.js");
 const { UserModel } = require("../models/User.js");
+const { getUploadUrl } = require("../middlewares/auth/aws/getUploadUrl.js");
+
+router.post(
+  "/uploadURL",
+  //  auth,
+  getUploadUrl
+);
 
 // إنشاء منتج جديد (يحتاج موافقة الإدارة)
 router.post("/", verifyToken, async (req, res) => {
   try {
     const { error } = validateProduct(req.body);
-    if (error) return res.status(400).json({ message: error.details[0].message });
+    if (error)
+      return res.status(400).json({ message: error.details[0].message });
 
     const seller = await UserModel.findById(req.user.id);
     if (!seller || seller.state !== "active") {
@@ -17,13 +25,17 @@ router.post("/", verifyToken, async (req, res) => {
 
     const product = new ProductModel({
       ...req.body,
-      seller: req.user.id,
+      owner: req.user.id,
     });
 
     await product.save();
+    console.log(product);
+    
     res.status(201).json(product);
   } catch (error) {
-    res.status(500).json({ message: "خطأ في إنشاء المنتج" });
+    console.log(error);
+
+    res.status(500).json({ message: "خطأ في إنشاء المنتج", error });
   }
 });
 

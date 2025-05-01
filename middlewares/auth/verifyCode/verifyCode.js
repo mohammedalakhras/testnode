@@ -1,3 +1,4 @@
+const jwt = require("jsonwebtoken");
 const {  UserModel } = require("../../../models/User.js");
 
 exports.verifyCode=  async (req, res) => {
@@ -39,7 +40,18 @@ exports.verifyCode=  async (req, res) => {
     user.verificationCode = undefined;
     user.verificationCodeExpires = undefined;
     await user.save();
-    res.status(200).json({ msg: "Email verified successfully" });
+
+    const token = jwt.sign(
+      {
+        id: user._id,
+        // email: user.email,
+        // username: user.username,
+      },
+      process.env.JWT_SECRETE_KEY,
+      // { expiresIn: "24h" }
+    );
+
+    res.status(200).json({ msg: "Email verified successfully" ,token});
   } catch (error) {
     console.error(error);
     res.status(500).json({ msg: "Server error during verification" });

@@ -58,7 +58,17 @@ exports.signup = async (req, res) => {
     const mailOptions = fillMailBody(req, res, user, verificationCode);
     await sendVerificationEmail(mailOptions);
 
-    const { password, ...userData } = result._doc;
+    const { password, ...fullUserData } = result._doc;
+
+    const userData = {
+      email: fullUserData.email,
+      username: fullUserData.username,
+      fullName: fullUserData.fullName,
+      phone: fullUserData.phone,
+      phoneVisible: fullUserData.phoneVisible,
+      authProvider: fullUserData.authProvider,
+      activated: fullUserData.activated,
+    };
 
     return res.json({
       msg: "User Registered and Email is Sent",

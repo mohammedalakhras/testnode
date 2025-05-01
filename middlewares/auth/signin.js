@@ -1,11 +1,11 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-const {  UserModel } = require("../../models/User.js");
+const { UserModel } = require("../../models/User.js");
 
 exports.signin = async (req, res) => {
   try {
-    const { identifier, password } = req.body;
+    const { identifier, password, fcmToken } = req.body;
 
     if (!identifier || !password) {
       return res.status(400).json({
@@ -44,11 +44,19 @@ exports.signin = async (req, res) => {
       });
     }
 
+    // Store the FCM token if provided
+    if (fcmToken) {
+      await UserModel.updateOne(
+        { _id: user._id },
+        { $addToSet: { fcmTokens: fcmToken } }
+      );
+    }
+    
     const token = jwt.sign(
       {
         id: user._id,
-        email: user.email,
-        username: user.username,
+        // email: user.email,
+        // username: user.username,
       },
       process.env.JWT_SECRETE_KEY
       // { expiresIn: "24h" }

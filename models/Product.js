@@ -120,17 +120,18 @@ function validateProduct(obj) {
     title: joi.string().min(5).max(100).required(),
     description: joi.string().min(10).max(2000).required(),
     price: joi.number().min(0).required(),
-    city: joi.string().required(),
-    status: joi.string().valid("new", "used", "sold"),
-    quantity: joi.number().min(1),
+    category: joi.string().required(), // يُفترض أن تَستقبل سلسلة تمثل ObjectId
+    location: joi.object({
+      city: joi.string().required(),  // يمثل ObjectId للمدينة
+      region: joi.string().min(5).max(50).optional() // اختياري، إذا وُجد فهو يخضع للقيود المذكورة
+    }).required(),
+    condition: joi.string().valid("new", "used").required(),
+    quantity: joi.number().min(1).optional(),
     images: joi.array().items(joi.string()).min(1).required(),
-    videos: joi.array().items(joi.string()),
-    tags: joi.array().items(joi.string()),
-    category: joi
-      .string()
-      .valid("electronics", "clothing", "furniture", "services", "other")
-      .required(),
+    videos: joi.array().items(joi.string()).optional(),
+    tags: joi.array().items(joi.string().trim().max(20)).optional(),
   });
+
   return schema.validate(obj);
 }
 
