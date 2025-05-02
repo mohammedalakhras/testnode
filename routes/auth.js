@@ -26,8 +26,13 @@ const {
   verifyResetCode,
 } = require("../middlewares/auth/verifyCode/verifyResetCode.js");
 const { resetPassword } = require("../middlewares/auth/resetPassword.js");
-const { updateProfile } = require("../middlewares/auth/update/updateProfile.js");
-const { confirmNewEmail } = require("../middlewares/auth/update/confirmNewEmail.js");
+const {
+  updateProfile,
+} = require("../middlewares/auth/update/updateProfile.js");
+const {
+  confirmNewEmail,
+} = require("../middlewares/auth/update/confirmNewEmail.js");
+const { sendNotification } = require("../src/lib/notificationService.js");
 
 /**
  * @description Sign up by [email,username,fullname,password]
@@ -119,8 +124,6 @@ router.post("/validate-token", verifyToken, async (req, res) => {
  */
 router.post("/update", verifyToken, updateProfile);
 
-
-
 /**
  * @description Update Profile Info
  * @route /api/users/update
@@ -128,5 +131,23 @@ router.post("/update", verifyToken, updateProfile);
  * @access private
  */
 router.post("/confirmNewEmail", verifyToken, confirmNewEmail);
+
+/**
+ * @description Send Notification to Specific Device By FCM Token
+ * @route /api/users/sendNotification
+ * @method POST
+ * @access public
+ */
+
+router.post("/sendNotification", async (req, res) => {
+  const { tokens, title, body, data } = req.body;
+  try {
+    const result = await sendNotification(tokens, { title, body, data });
+    res.status(200).json({ success: true, result });
+  } catch (err) {
+    console.error("FCM Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 module.exports = router;

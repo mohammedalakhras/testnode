@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const { UserModel } = require("../../models/User.js");
 const { MessageModel } = require("../../models/Message.js");
 const { default: mongoose } = require("mongoose");
+const { sendNotification } = require("./notificationService.js");
 
 const startSocket = (server) => {
   const io = require("socket.io")(server, {
@@ -111,12 +112,22 @@ const startSocket = (server) => {
       const savedMsg = await message.save();
       messageWithSender._id = savedMsg._id;
 
-   
       const receiverData = await UserModel.findById(
         messageWithSender.receiver,
-        "photo fullName lastLoginTime"
+        "photo fullName lastLoginTime fcmTokens"
       );
 
+      try {
+        sendNotification(receiverData.fcmTokens, {
+          title: `رسالة جديدة من ${socket.userData.fullName}`,
+          body: savedMsg.content,
+          data:{k1:"v1"},
+        });
+      
+        
+      } catch (err) {
+        console.error("FCM Error:", err);
+      }
       const updatedConversation = {
         chatPartner: messageWithSender.receiver,
         fullName:
