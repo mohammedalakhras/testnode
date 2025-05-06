@@ -3,12 +3,12 @@ const router = express.Router();
 const { verifyToken } = require("../middlewares/token/verifyToken.js");
 const { ProductModel, validateProduct } = require("../models/Product.js");
 const { UserModel } = require("../models/User.js");
-const { getUploadUrl } = require("../middlewares/auth/aws/getUploadUrl.js");
+const { getUploadUrlProduct } = require("../controllers/auth/aws/products/getUploadUrlProduct.js");
 
 router.post(
   "/uploadURL",
-  //  auth,
-  getUploadUrl
+  verifyToken,
+  getUploadUrlProduct
 );
 
 // إنشاء منتج جديد (يحتاج موافقة الإدارة)

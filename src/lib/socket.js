@@ -3,6 +3,7 @@ const { UserModel } = require("../../models/User.js");
 const { MessageModel } = require("../../models/Message.js");
 const { default: mongoose } = require("mongoose");
 const { sendNotification } = require("./notificationService.js");
+const { getSignedUrl } = require("../../controllers/chat/getMessgaesById.js");
 
 const startSocket = (server) => {
   const io = require("socket.io")(server, {
@@ -93,6 +94,7 @@ const startSocket = (server) => {
     });
 
     socket.on("sendMessage", async (data) => {
+    
       console.log("data", data);
 
       const messageWithSender = {
@@ -103,12 +105,18 @@ const startSocket = (server) => {
         createdAt: new Date(),
         status: "sent",
       };
+      
 
       const message = new MessageModel({
         sender: messageWithSender.sender._id,
         receiver: messageWithSender.receiver,
         content: messageWithSender.content,
+        media: data.media,
       });
+      if(data.media){
+        messageWithSender.media=data.media;
+        messageWithSender.media.url=await getSignedUrl(data.media.url);
+      }
       const savedMsg = await message.save();
       messageWithSender._id = savedMsg._id;
 

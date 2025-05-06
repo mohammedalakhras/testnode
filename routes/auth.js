@@ -11,27 +11,27 @@ const {
   sendVerificationEmail,
 } = require("../src/lib/emailVerification.js");
 
-const { signup } = require("../middlewares/auth/signup.js");
-const { signin } = require("../middlewares/auth/signin.js");
+const { signup } = require("../controllers/auth/signup.js");
+const { signin } = require("../controllers/auth/signin.js");
 
-const { verifyCode } = require("../middlewares/auth/verifyCode/verifyCode.js");
-const { reSendEmailCode } = require("../middlewares/auth/email/reSendCode.js");
+const { verifyCode } = require("../controllers/auth/verifyCode/verifyCode.js");
+const { reSendEmailCode } = require("../controllers/auth/email/reSendCode.js");
 const {
   forgetPassword,
-} = require("../middlewares/auth/email/forgetPassword.js");
+} = require("../controllers/auth/email/forgetPassword.js");
 
 const { verifyToken } = require("../middlewares/token/verifyToken.js");
-const { me } = require("../middlewares/user/mydata.js");
+const { me } = require("../controllers/user/mydata.js");
 const {
   verifyResetCode,
-} = require("../middlewares/auth/verifyCode/verifyResetCode.js");
-const { resetPassword } = require("../middlewares/auth/resetPassword.js");
+} = require("../controllers/auth/verifyCode/verifyResetCode.js");
+const { resetPassword } = require("../controllers/auth/resetPassword.js");
 const {
   updateProfile,
-} = require("../middlewares/auth/update/updateProfile.js");
+} = require("../controllers/auth/update/updateProfile.js");
 const {
   confirmNewEmail,
-} = require("../middlewares/auth/update/confirmNewEmail.js");
+} = require("../controllers/auth/update/confirmNewEmail.js");
 const { sendNotification } = require("../src/lib/notificationService.js");
 
 /**

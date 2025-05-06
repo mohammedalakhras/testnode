@@ -1,8 +1,8 @@
 // src/controllers/productController.js
-const s3 = require("../../../src/config/aws.js");
-const { ProductModel, validateProduct } = require("../../../models/Product.js");
+const s3 = require("../../../../src/config/aws.js");
 
-exports.getUploadUrl = async (req, res, next) => {
+
+exports.getUploadUrlProduct = async (req, res, next) => {
   try {
     if (req.body.filename && req.body.contentType) {
       const { filename, contentType } = req.body;

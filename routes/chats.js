@@ -2,8 +2,10 @@ const express = require("express");
 const router = express.Router();
 
 const { verifyToken } = require("../middlewares/token/verifyToken.js");
-const { myChats } = require("../middlewares/chat/myChats.js");
-const { getMessagesById } = require("../middlewares/chat/getMessgaesById.js");
+const { myChats } = require("../controllers/chat/myChats.js");
+const { getMessagesById } = require("../controllers/chat/getMessgaesById.js");
+const { getUploadUrlChat } = require("../controllers/auth/aws/chats/getChatMediaUploader.js");
+const { chatMediaDownloader } = require("../controllers/auth/aws/chats/getChatMediaDownloader.js");
 
 /**
  * @description get all my chats(with last message) ordered by date
@@ -27,4 +29,17 @@ router.get("/MyChats", verifyToken, myChats);
 
 router.get("/getMessages/:id/:skips", verifyToken, getMessagesById);
 
+
+router.post(
+    "/uploadURL",
+    verifyToken,
+    getUploadUrlChat
+  );
+
+  router.get(
+    "/:key",
+    verifyToken,
+    chatMediaDownloader
+  );
+  
 module.exports = router;
