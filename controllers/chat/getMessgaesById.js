@@ -1,6 +1,7 @@
 const { default: mongoose } = require("mongoose");
 const { MessageModel } = require("../../models/Message.js");
 const s3 = require("../../src/config/aws.js");
+const { flushSpecificMessages } = require("../../src/lib/queues/queue.js");
 exports.getMessagesById = async (req, res) => {
   try {
     const chatPartnerId = req.params.id;
@@ -10,6 +11,8 @@ exports.getMessagesById = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(chatPartnerId)) {
       return res.status(400).json({ message: "Invalid user ID format" });
     }
+
+    await flushSpecificMessages(myId);
 
     // الحصول على أحدث الرسائل أولاً
     const messages = await MessageModel.find({
@@ -26,12 +29,10 @@ exports.getMessagesById = async (req, res) => {
 
     // عكس الترتيب لجعل الرسائل تصاعدية عند العرض
     messages.reverse();
- 
 
     const messagesWithMedia = await Promise.all(
       messages.map(async (msg) => {
         if (msg.media) {
-         
           msg.media.key = msg.media.url;
 
           msg.media.url = await getSignedUrl(msg.media.url);
@@ -50,7 +51,7 @@ exports.getMessagesById = async (req, res) => {
   }
 };
 
-async function getSignedUrl(url){
+async function getSignedUrl(url) {
   const params = {
     Bucket: process.env.AWS_S3_BUCKET,
     Key: url,
@@ -59,8 +60,6 @@ async function getSignedUrl(url){
   return s3.getSignedUrlPromise("getObject", params);
 }
 exports.getSignedUrl = getSignedUrl;
-
-
 
 // exports.getMessagesById=  async (req, res) => {
 //   try {

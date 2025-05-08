@@ -1,11 +1,12 @@
 const mongoose = require("mongoose");
 const { MessageModel } = require("../../models/Message.js");
+const { flushSpecificMessages } = require("../../src/lib/queues/queue.js");
 
 exports.myChats = async (req, res) => {
   try {
     const userId = req.user.id;
     const userObjectId = new mongoose.Types.ObjectId(userId);
-
+    await flushSpecificMessages(userId);
     const messagesAggregate = await MessageModel.aggregate([
       {
         $match: {
@@ -13,7 +14,7 @@ exports.myChats = async (req, res) => {
         },
       },
       {
-        $sort: { createdAt: -1 },
+        $sort: {  sentAt: -1,createdAt: -1 },
       },
       {
         $addFields: {

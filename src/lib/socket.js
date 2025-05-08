@@ -4,6 +4,11 @@ const { MessageModel } = require("../../models/Message.js");
 const { default: mongoose } = require("mongoose");
 const { sendNotification } = require("./notificationService.js");
 const { getSignedUrl } = require("../../controllers/chat/getMessgaesById.js");
+const {
+  enqueueNotification,
+  writeQueue,
+  scheduleFlush,
+} = require("./queues/queue.js");
 
 const startSocket = (server) => {
   const io = require("socket.io")(server, {
@@ -60,79 +65,107 @@ const startSocket = (server) => {
     //end new
 
     socket.on("signin", async () => {
+      const start = Date.now();
       console.log(`User ${socket.userData.fullName} signed in`);
-
-      await UserModel.findByIdAndUpdate(socket.userId, {
-        $set: {
-          lastLoginTime: "active",
-        },
-      });
+    
+      // تحديث حالة lastLoginTime للمستخدم
+      await UserModel.findByIdAndUpdate(
+        socket.userId,
+        { $set: { lastLoginTime: "active" } }
+      );
       socket.userData.lastLoginTime = "active";
       socket.broadcast.emit("lastSeenUpdate", {
         partnerId: socket.userId.toString(),
         lastSeen: "active",
       });
-
+    
       try {
-        const pendingMessages = await MessageModel.find({
-          receiver: socket.userId,
-          status: "sent",
-        });
-
-        for (const msg of pendingMessages) {
-          await MessageModel.findByIdAndUpdate(msg._id, {
-            status: "delivered",
-          });
-          io.to(msg.sender.toString()).emit("changeMessageStatus", {
-            id: msg._id,
-            status: "delivered",
+        // 1. جلب الرسائل المعلقة مرةً واحدة
+        const pending = await MessageModel.find(
+          { receiver: socket.userId, status: "sent" },
+          { _id: 1, sender: 1 }
+        );
+    
+        if (pending.length > 0) {
+          // 2. تجهيز مصفوفة عمليات التحديث
+          const ops = pending.map((msg) => ({
+            updateOne: {
+              filter: { _id: msg._id },
+              update: { $set: { status: "delivered" } }
+            }
+          }));
+    
+          // 3. تنفيذ جميع عمليات التحديث دفعة واحدة
+          await MessageModel.bulkWrite(ops, { ordered: false });
+          // :contentReference[oaicite:0]{index=0} :contentReference[oaicite:1]{index=1}
+    
+          // 4. إرسال إشعارات لجميع المرسلين
+          pending.forEach((msg) => {
+            io.to(msg.sender.toString()).emit("changeMessageStatus", {
+              id: msg._id,
+              status: "delivered",
+            });
           });
         }
+    
+        console.log("signin took", Date.now() - start, "ms");
       } catch (error) {
         console.error("Error updating pending messages to delivered:", error);
       }
     });
+    
 
     socket.on("sendMessage", async (data) => {
-    
-      console.log("data", data);
-
+      const time = new Date().getMilliseconds();
       const messageWithSender = {
         content: data.content,
         receiver: new mongoose.Types.ObjectId(data.receiver),
         sender: socket.userData,
         fullName: socket.userData.fullName,
-        createdAt: new Date(),
+        sentAt: new Date(),
         status: "sent",
       };
-      
 
       const message = new MessageModel({
         sender: messageWithSender.sender._id,
         receiver: messageWithSender.receiver,
         content: messageWithSender.content,
         media: data.media,
+        sentAt: messageWithSender.sentAt,
       });
-      if(data.media){
-        messageWithSender.media=data.media;
-        messageWithSender.media.url=await getSignedUrl(data.media.url);
+      // console.log("message", message);
+      writeQueue.push(message);
+      scheduleFlush();
+
+      if (data.media) {
+        messageWithSender.media = data.media;
+        messageWithSender.media.url = await getSignedUrl(data.media.url);
       }
-      const savedMsg = await message.save();
-      messageWithSender._id = savedMsg._id;
+      // const savedMsg = await message.save();
+      messageWithSender._id = message._id;
 
       const receiverData = await UserModel.findById(
         messageWithSender.receiver,
         "photo fullName lastLoginTime fcmTokens"
-      );
+      ).lean();
 
       try {
-        sendNotification(receiverData.fcmTokens, {
-          title: `رسالة جديدة من ${socket.userData.fullName}`,
-          body: savedMsg.content,
-          data:{k1:"v1"},
-        });
-      
-        
+        // sendNotification(receiverData.fcmTokens, {
+        //   title: `رسالة جديدة من ${socket.userData.fullName}`,
+        //   body: message.content,
+        //   data: { k1: "v1" },
+        // });
+        const payload = {
+          title: `رسالة جديدة من 
+                ${socket.userData.fullName}
+               `,
+          body:
+            `${message.media.type ? message.media.type : "رسالة نصية"}
+            ${data.content}
+                ` || "",
+          data: { type: "messgae", senderId: socket.userId.toString() },
+        };
+        enqueueNotification(receiverData.fcmTokens, payload);
       } catch (err) {
         console.error("FCM Error:", err);
       }
@@ -144,7 +177,7 @@ const startSocket = (server) => {
             ? receiverData.fullName
             : "Saved Messages",
         lastMessage: messageWithSender.content,
-        lastMessageDate: messageWithSender.createdAt,
+        lastMessageDate: messageWithSender.sentAt,
         photo: receiverData.photo ? receiverData.photo : null,
         lastLoginTime: receiverData.lastLoginTime,
       };
@@ -168,17 +201,18 @@ const startSocket = (server) => {
         messageWithSender.receiver.toString()
       );
       if (receiverRoom && receiverRoom.size > 0) {
-        await MessageModel.findByIdAndUpdate(savedMsg._id, {
+        await MessageModel.findByIdAndUpdate(message._id, {
           status: "delivered",
         });
         io.to(messageWithSender.sender._id.toString()).emit(
           "changeMessageStatus",
           {
-            id: savedMsg._id,
+            id: message._id,
             status: "delivered",
           }
         );
       }
+      console.log("time", new Date().getMilliseconds() - time);
     });
 
     socket.on("messageDelivered", async (message) => {
