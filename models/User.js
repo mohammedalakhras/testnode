@@ -218,6 +218,13 @@ const UserSchema = new mongoose.Schema(
   }
 );
 
+
+
+UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ username: 1 }, { unique: true });
+UserSchema.index({ location: 1 });
+UserSchema.index({ googleId: 1 }, { unique: true, sparse: true });
+
 UserSchema.methods.incrementAlerts = async function () {
   this.numberOfAlerts += 1;
   if (this.numberOfAlerts >= 3) {

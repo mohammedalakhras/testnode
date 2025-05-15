@@ -19,12 +19,16 @@ const startSocket = (server) => {
 
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth.token;
+      const token = socket.handshake.auth?.token || socket.handshake.headers?.token;
+      console.log("token", socket.handshake.auth, socket.handshake.headers);
       if (!token) {
         return next(new Error("Authentication error: Token missing"));
       }
+     
       const decoded = jwt.verify(token, process.env.JWT_SECRETE_KEY);
+   
       const user = await UserModel.findById(decoded.id);
+     
       if (!user) {
         return next(new Error("Authentication error: User not found"));
       }

@@ -71,7 +71,7 @@ exports.signup = async (req, res) => {
     };
 
     return res.json({
-      msg: "User Registered and Email is Sent",
+      msg: "تم التسجيل وتم إرسال البريد الإلكتروني للتحقق",
       // token: "Account Must be Activated",
       // token: token,
       userData,
@@ -83,7 +83,7 @@ exports.signup = async (req, res) => {
       });
     else
       return res.status(500).json({
-        msg: "Server Error",
+        msg: "خطأ في الخادم",
         error: error,
       });
   }

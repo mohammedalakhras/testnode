@@ -10,7 +10,7 @@ exports.signin = async (req, res) => {
     if (!identifier || !password) {
       return res.status(400).json({
         success: false,
-        msg: "All Fields is Required",
+        msg: "جميع الحقول مطلوبة",
       });
     }
 
@@ -25,14 +25,14 @@ exports.signin = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        msg: "User Not Exsits ",
+        msg: "المستخدم غير موجود",
       });
     }
 
     if (!user.activated) {
       return res.status(403).json({
         success: false,
-        msg: "Account is not Activated",
+        msg: "الحساب غير مفعل",
       });
     }
 
@@ -40,7 +40,7 @@ exports.signin = async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
-        msg: "incorrect Password",
+        msg: "كلمة مرور غير صحيحة",
       });
     }
 
@@ -66,15 +66,15 @@ exports.signin = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      msg: "signin successfully",
+      msg: "تسجيل الدخول بنجاح",
       token,
       userData,
     });
   } catch (error) {
-    console.error("Sigin in Error", error);
+    console.error("خطأ في تسجيل الدخول", error);
     return res.status(500).json({
       success: false,
-      msg: "Server Error",
+      msg: "خطأ في الخادم",
     });
   }
 };

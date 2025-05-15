@@ -24,6 +24,7 @@ startSocket(server);
 app.use("/api/users", require("../routes/auth.js"));
 app.use("/api/chats", require("../routes/chats.js"));
 app.use("/api/products", require("../routes/products.js"));
-
+app.use("/api/locations", require("../routes/locations.js"));
+app.use("/api/categories", require("../routes/categories.js"));
 connectToDB();
 startServer(server);
