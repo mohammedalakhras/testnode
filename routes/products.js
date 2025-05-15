@@ -3,7 +3,11 @@ const router = express.Router();
 const { default: mongoose } = require("mongoose");
 
 const { verifyToken } = require("../middlewares/token/verifyToken.js");
-const { ProductModel, validateProduct } = require("../models/Product.js");
+const {
+  ProductModel,
+  validateProduct,
+  validateUpdateProduct,
+} = require("../models/Product.js");
 const { UserModel } = require("../models/User.js");
 const { LocationModel } = require("../models/Location.js");
 const {
@@ -14,41 +18,42 @@ router.post("/uploadURL", verifyToken, getUploadUrlProduct);
 
 // Create a new product (requires admin approval)
 router.post("/", verifyToken, async (req, res) => {
-  // try {
-  // Validate request body
+  try {
+    // Validate request body
 
-  const { error } = validateProduct(req.body);
-  if (error) return res.status(400).json({ message: error.details[0].message });
+    const { error } = validateProduct(req.body);
+    if (error)
+      return res.status(400).json({ message: error.details[0].message });
 
-  // Check seller status
-  console.log("product");
-  const seller = await UserModel.findById(req.user.id);
-  if (!seller || seller.state !== "active") {
-    return res.status(403).json({ message: "الحساب غير نشط أو غير موجود" });
+    // Check seller status
+    console.log("product");
+    const seller = await UserModel.findById(req.user.id);
+    if (!seller || seller.state !== "active") {
+      return res.status(403).json({ message: "الحساب غير نشط أو غير موجود" });
+    }
+
+    // Create product with default status Pending and isSold=false
+    if (
+      req.body.title &&
+      req.body.description &&
+      req.body.category &&
+      req.body.location &&
+      req.body.condition &&
+      req.body.images
+    ) {
+      const product = new ProductModel({
+        ...req.body,
+        owner: req.user.id,
+        isSold: false,
+      });
+
+      await product.save();
+      res.status(201).json({ msg: "تم إضافة المنتج بنجاح", product });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "خطأ في إضافة المنتج", error: error });
   }
-
-  // Create product with default status Pending and isSold=false
-  if (
-    req.body.title &&
-    req.body.description &&
-    req.body.category &&
-    req.body.location &&
-    req.body.condition &&
-    req.body.images
-  ) {
-    const product = new ProductModel({
-      ...req.body,
-      owner: req.user.id,
-      isSold: false,
-    });
-
-    await product.save();
-    res.status(201).json({ msg: "تم إضافة المنتج بنجاح", product });
-  }
-  // } catch (error) {
-  //   console.error(error);
-  //   res.status(500).json({ message: "خطأ في إضافة المنتج" ,error:error });
-  // }
 });
 
 // Fetch products with filters, pagination, and text search
@@ -75,7 +80,7 @@ router.get("/", async (req, res) => {
     if (category) filter.category = new mongoose.Types.ObjectId(category);
 
     if (location) {
-      const locId =new mongoose.Types.ObjectId(location);
+      const locId = new mongoose.Types.ObjectId(location);
       const descendants = await LocationModel.find({ ancestors: locId })
         .select("_id")
         .lean();
@@ -91,7 +96,7 @@ router.get("/", async (req, res) => {
 
     if (tags) {
       const tagsArray = Array.isArray(tags) ? tags : tags.split(",");
-      filter.tags = { $all: tagsArray.map((t) => t.trim()) };
+      filter.tags = { $all: tagsArray.map((t) => t.trim().toLowerCase()) };
     }
 
     let query = ProductModel.find(filter)
@@ -110,7 +115,7 @@ router.get("/", async (req, res) => {
     const queryFilter = query.getFilter();
 
     // Pagination
-    const skip = (Number(page)) * Number(limit);
+    const skip = Number(page) * Number(limit);
     query = query.skip(skip).limit(Number(limit));
 
     const products = await query.exec();
@@ -137,18 +142,22 @@ router.put("/:id", verifyToken, async (req, res) => {
     const product = await ProductModel.findById(req.params.id);
     if (!product) return res.status(404).json({ message: "المنتج غير موجود" });
 
-    const user = await UserModel.findById(req.user.id);
+    const user = await UserModel.findById(req.user.id).select("role");
     if (product.owner.toString() !== req.user.id && user.role !== "admin") {
       return res.status(403).json({ message: "غير مصرح بالتعديل" });
     }
+    //check if req.body is not empty object 
+    if (Object.keys(req.body).length === 0) {
+      return res.status(400).json({ message: "لا يوجد بيانات للتحديث" });
+    }
 
-    const { error } = validateProduct(req.body);
+    const { error } = validateUpdateProduct(req.body);
     if (error)
       return res.status(400).json({ message: error.details[0].message });
 
     Object.assign(product, req.body);
-    await product.save();
-    res.json(product);
+    const updatedProduct = await product.save();
+    res.status(200).json({ msg: "تم تحديث المنتج بنجاح", updatedProduct });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "خطأ في تحديث المنتج" });

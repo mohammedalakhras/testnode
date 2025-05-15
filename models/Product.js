@@ -99,6 +99,7 @@ const ProductSchema = new mongoose.Schema(
         type: String,
         maxlength: 20,
         trim: true,
+        lowercase: true,
       },
     ],
 
@@ -206,7 +207,37 @@ function validateProduct(obj) {
   return schema.validate(obj, { abortEarly: false });
 }
 
+function validateUpdateProduct(obj) {
+  const schema = joi
+    .object({
+      title: joi.string().min(5).max(100).optional(),
+      description: joi.string().min(10).max(2000).optional(),
+      price: joi
+        .object({
+          amount: joi.number().min(0).required(),
+          currency: joi.string().valid("USD", "SYP").required(),
+        })
+        .optional(),
+      category: joi.string().optional(),
+      location: joi
+        .object({
+          location: joi.string().required(),
+          details: joi.string().min(5).max(50).optional(),
+        })
+        .optional(),
+      condition: joi.string().valid("new", "used").optional(),
+      quantity: joi.number().min(1).optional(),
+      images: joi.array().items(joi.string()).min(1).optional(),
+      videos: joi.array().items(joi.string()).optional(),
+      tags: joi.array().items(joi.string().trim().max(20)).optional(),
+    })
+    .unknown(false); // Reject unknown fields
+
+  return schema.validate(obj);
+}
+
 module.exports = {
   ProductModel,
   validateProduct,
+  validateUpdateProduct,
 };

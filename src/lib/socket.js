@@ -188,12 +188,12 @@ const startSocket = (server) => {
 
       io.to(messageWithSender.sender._id.toString()).emit(
         "updatedMessage",
-        updatedConversation
+        JSON.stringify(updatedConversation)
       );
 
       io.to(messageWithSender.sender._id.toString()).emit(
         "LoadNewMessage",
-        messageWithSender
+        JSON.stringify(messageWithSender)
       );
       io.to(messageWithSender.receiver.toString()).emit("receive", {
         ...messageWithSender,
