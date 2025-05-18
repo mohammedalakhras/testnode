@@ -96,7 +96,7 @@ exports.myChats = async (req, res) => {
   } catch (error) {
     console.error("Error fetching chats:", error);
     return res.status(500).json({
-      message: "Error fetching chats",
+      msg: "Error fetching chats",
       error: error.message,
     });
   }

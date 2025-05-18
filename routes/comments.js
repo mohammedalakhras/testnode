@@ -50,7 +50,7 @@ router.post("/", verifyToken, async (req, res) => {
     } catch (error) {
       res.status(400).json({
         success: false,
-        message: error.message
+        msg: error.message
       });
     }
   });

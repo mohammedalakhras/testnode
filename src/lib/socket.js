@@ -19,16 +19,17 @@ const startSocket = (server) => {
 
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth?.token || socket.handshake.headers?.token;
+      const token =
+        socket.handshake.auth?.token || socket.handshake.headers?.token;
       console.log("token", socket.handshake.auth, socket.handshake.headers);
       if (!token) {
         return next(new Error("Authentication error: Token missing"));
       }
-     
+
       const decoded = jwt.verify(token, process.env.JWT_SECRETE_KEY);
-   
+
       const user = await UserModel.findById(decoded.id);
-     
+
       if (!user) {
         return next(new Error("Authentication error: User not found"));
       }
@@ -71,38 +72,37 @@ const startSocket = (server) => {
     socket.on("signin", async () => {
       const start = Date.now();
       console.log(`User ${socket.userData.fullName} signed in`);
-    
+
       // تحديث حالة lastLoginTime للمستخدم
-      await UserModel.findByIdAndUpdate(
-        socket.userId,
-        { $set: { lastLoginTime: "active" } }
-      );
+      await UserModel.findByIdAndUpdate(socket.userId, {
+        $set: { lastLoginTime: "active" },
+      });
       socket.userData.lastLoginTime = "active";
       socket.broadcast.emit("lastSeenUpdate", {
         partnerId: socket.userId.toString(),
         lastSeen: "active",
       });
-    
+
       try {
         // 1. جلب الرسائل المعلقة مرةً واحدة
         const pending = await MessageModel.find(
           { receiver: socket.userId, status: "sent" },
           { _id: 1, sender: 1 }
         );
-    
+
         if (pending.length > 0) {
           // 2. تجهيز مصفوفة عمليات التحديث
           const ops = pending.map((msg) => ({
             updateOne: {
               filter: { _id: msg._id },
-              update: { $set: { status: "delivered" } }
-            }
+              update: { $set: { status: "delivered" } },
+            },
           }));
-    
+
           // 3. تنفيذ جميع عمليات التحديث دفعة واحدة
           await MessageModel.bulkWrite(ops, { ordered: false });
           // :contentReference[oaicite:0]{index=0} :contentReference[oaicite:1]{index=1}
-    
+
           // 4. إرسال إشعارات لجميع المرسلين
           pending.forEach((msg) => {
             io.to(msg.sender.toString()).emit("changeMessageStatus", {
@@ -111,13 +111,12 @@ const startSocket = (server) => {
             });
           });
         }
-    
+
         console.log("signin took", Date.now() - start, "ms");
       } catch (error) {
         console.error("Error updating pending messages to delivered:", error);
       }
     });
-    
 
     socket.on("sendMessage", async (data) => {
       const time = new Date().getMilliseconds();
@@ -167,7 +166,7 @@ const startSocket = (server) => {
             `${message.media.type ? message.media.type : "رسالة نصية"}
             ${data.content}
                 ` || "",
-          data: { type: "messgae", senderId: socket.userId.toString() },
+          data: { type: "message", senderId: socket.userId.toString() },
         };
         enqueueNotification(receiverData.fcmTokens, payload);
       } catch (err) {
@@ -193,7 +192,7 @@ const startSocket = (server) => {
 
       io.to(messageWithSender.sender._id.toString()).emit(
         "LoadNewMessage",
-       messageWithSender
+        messageWithSender
       );
       io.to(messageWithSender.receiver.toString()).emit("receive", {
         ...messageWithSender,
@@ -229,10 +228,48 @@ const startSocket = (server) => {
       });
     });
 
-    socket.on("messageRead", async (message) => {
-      const res = await MessageModel.findByIdAndUpdate(message._id, {
-        status: "read",
+    // socket.on("messageRead", async (message) => {
+    //   const res = await MessageModel.findByIdAndUpdate(message._id, {
+    //     status: "read",
+    //   });
+
+    //   io.to(message.sender._id.toString()).emit("changeMessageStatus", {
+    //     id: message._id,
+    //     status: "read",
+    //   });
+    // });
+
+    socket.on("messageDelivered", async (message) => {
+      const queuedMsgIndex = writeQueue.findIndex(
+        (msg) => msg._id.toString() === message._id
+      );
+
+      if (queuedMsgIndex !== -1) {
+        writeQueue[queuedMsgIndex].status = "delivered";
+      } else {
+        await MessageModel.findByIdAndUpdate(message._id, {
+          status: "delivered",
+        });
+      }
+
+      io.to(message.sender._id.toString()).emit("changeMessageStatus", {
+        id: message._id,
+        status: "delivered",
       });
+    });
+
+    socket.on("messageRead", async (message) => {
+      const queuedMsgIndex = writeQueue.findIndex(
+        (msg) => msg._id.toString() === message._id
+      );
+
+      if (queuedMsgIndex !== -1) {
+        writeQueue[queuedMsgIndex].status = "read";
+      } else {
+        await MessageModel.findByIdAndUpdate(message._id, {
+          status: "read",
+        });
+      }
 
       io.to(message.sender._id.toString()).emit("changeMessageStatus", {
         id: message._id,

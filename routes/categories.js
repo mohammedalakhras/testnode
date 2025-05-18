@@ -7,7 +7,7 @@ router.get("/", async (req, res) => {
     const categories = await CategoryModel.find();
     res.json(categories);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ msg: error.message });
   }
 });
 
@@ -17,7 +17,7 @@ router.post("/", async (req, res) => {
     await category.save();
     res.status(201).json(category);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ msg: error.message });
   }
 });
 

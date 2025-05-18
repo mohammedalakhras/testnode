@@ -62,9 +62,9 @@ const ProductSchema = new mongoose.Schema(
     },
     condition: {
       type: String,
-      enum: ["new", "used"],
+      // enum: ["new", "used",""],
       default: "new",
-      required: true,
+      // required: true,
     },
 
     isSold: {

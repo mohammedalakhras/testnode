@@ -23,13 +23,13 @@ router.post("/", verifyToken, async (req, res) => {
 
     const { error } = validateProduct(req.body);
     if (error)
-      return res.status(400).json({ message: error.details[0].message });
+      return res.status(400).json({ msg: error.details[0].message });
 
     // Check seller status
     console.log("product");
     const seller = await UserModel.findById(req.user.id);
     if (!seller || seller.state !== "active") {
-      return res.status(403).json({ message: "الحساب غير نشط أو غير موجود" });
+      return res.status(403).json({ msg: "الحساب غير نشط أو غير موجود" });
     }
 
     // Create product with default status Pending and isSold=false
@@ -52,7 +52,7 @@ router.post("/", verifyToken, async (req, res) => {
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "خطأ في إضافة المنتج", error: error });
+    res.status(500).json({ msg: "خطأ في إضافة المنتج", error: error });
   }
 });
 
@@ -132,7 +132,7 @@ router.get("/", async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching products:", error);
-    res.status(500).json({ message: "خطأ في جلب المنتجات" });
+    res.status(500).json({ msg: "خطأ في جلب المنتجات" });
   }
 });
 
@@ -140,27 +140,27 @@ router.get("/", async (req, res) => {
 router.put("/:id", verifyToken, async (req, res) => {
   try {
     const product = await ProductModel.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: "المنتج غير موجود" });
+    if (!product) return res.status(404).json({ msg: "المنتج غير موجود" });
 
     const user = await UserModel.findById(req.user.id).select("role");
     if (product.owner.toString() !== req.user.id && user.role !== "admin") {
-      return res.status(403).json({ message: "غير مصرح بالتعديل" });
+      return res.status(403).json({ msg: "غير مصرح بالتعديل" });
     }
     //check if req.body is not empty object 
     if (Object.keys(req.body).length === 0) {
-      return res.status(400).json({ message: "لا يوجد بيانات للتحديث" });
+      return res.status(400).json({ msg: "لا يوجد بيانات للتحديث" });
     }
 
     const { error } = validateUpdateProduct(req.body);
     if (error)
-      return res.status(400).json({ message: error.details[0].message });
+      return res.status(400).json({ msg: error.details[0].message });
 
     Object.assign(product, req.body);
     const updatedProduct = await product.save();
     res.status(200).json({ msg: "تم تحديث المنتج بنجاح", updatedProduct });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "خطأ في تحديث المنتج" });
+    res.status(500).json({ msg: "خطأ في تحديث المنتج" });
   }
 });
 
@@ -168,18 +168,18 @@ router.put("/:id", verifyToken, async (req, res) => {
 router.delete("/:id", verifyToken, async (req, res) => {
   try {
     const product = await ProductModel.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: "المنتج غير موجود" });
+    if (!product) return res.status(404).json({ msg: "المنتج غير موجود" });
 
     const user = await UserModel.findById(req.user.id);
     if (product.owner.toString() !== req.user.id && user.role !== "admin") {
-      return res.status(403).json({ message: "غير مصرح بالحذف" });
+      return res.status(403).json({ msg: "غير مصرح بالحذف" });
     }
 
     await product.remove();
-    res.json({ message: "تم حذف المنتج" });
+    res.json({ msg: "تم حذف المنتج" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "خطأ في حذف المنتج" });
+    res.status(500).json({ msg: "خطأ في حذف المنتج" });
   }
 });
 
@@ -187,7 +187,7 @@ router.delete("/:id", verifyToken, async (req, res) => {
 router.post("/:id/report", verifyToken, async (req, res) => {
   try {
     const product = await ProductModel.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: "المنتج غير موجود" });
+    if (!product) return res.status(404).json({ msg: "المنتج غير موجود" });
 
     product.reports.push({
       user: req.user.id,
@@ -195,10 +195,10 @@ router.post("/:id/report", verifyToken, async (req, res) => {
     });
 
     await product.save();
-    res.json({ message: "تم الإبلاغ عن المنتج" });
+    res.json({ msg: "تم الإبلاغ عن المنتج" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "خطأ في الإبلاغ" });
+    res.status(500).json({ msg: "خطأ في الإبلاغ" });
   }
 });
 

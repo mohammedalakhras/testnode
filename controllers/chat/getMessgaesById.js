@@ -9,7 +9,7 @@ exports.getMessagesById = async (req, res) => {
     const myId = req.user.id;
 
     if (!mongoose.Types.ObjectId.isValid(chatPartnerId)) {
-      return res.status(400).json({ message: "Invalid user ID format" });
+      return res.status(400).json({ msg: "Invalid user ID format" });
     }
 
     await flushSpecificMessages(myId);
@@ -45,7 +45,7 @@ exports.getMessagesById = async (req, res) => {
   } catch (error) {
     console.error("Error fetching messages:", error);
     return res.status(500).json({
-      message: "Server error",
+      msg: "Server error",
       error: error.message,
     });
   }
@@ -68,7 +68,7 @@ exports.getSignedUrl = getSignedUrl;
 //     const myId = req.user.id;
 
 //     if (!mongoose.Types.ObjectId.isValid(chatPartnerId)) {
-//       return res.status(400).json({ message: "Invalid user ID format" });
+//       return res.status(400).json({ msg: "Invalid user ID format" });
 //     }
 
 //     const messages = await MessageModel.find({
@@ -89,7 +89,7 @@ exports.getSignedUrl = getSignedUrl;
 //   } catch (error) {
 //     console.error("Error fetching messages:", error);
 //     return res.status(500).json({
-//       message: "Server error",
+//       msg: "Server error",
 //       error: error.message
 //     });
 //   }

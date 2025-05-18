@@ -30,7 +30,12 @@ async function flushWrites() {
     // Bulk insert all queued MessageModel docs
     await MessageModel.bulkWrite(
       batch.map((doc) => ({
-        insertOne: { document: doc.toObject() },
+        // insertOne: { document: doc.toObject() },
+
+        filter: { _id: doc._id },
+        replacement: doc.toObject(),
+        upsert: true,
+      
       })),
       { ordered: false }
     );
@@ -58,7 +63,6 @@ async function flushNotifications() {
   }
 }
 
-// Add to src/lib/queues/queue.js
 async function flushSpecificMessages(userId) {
   console.log("flushSpecificMessages", userId);
   if (writeQueue.length === 0) return;
