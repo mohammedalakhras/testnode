@@ -105,6 +105,8 @@ const startSocket = (server) => {
 
           // 4. إرسال إشعارات لجميع المرسلين
           pending.forEach((msg) => {
+            console.log('msg', msg);
+            
             io.to(msg.sender.toString()).emit("changeMessageStatus", {
               id: msg._id,
               status: "delivered",
@@ -218,15 +220,15 @@ const startSocket = (server) => {
       console.log("time", new Date().getMilliseconds() - time);
     });
 
-    socket.on("messageDelivered", async (message) => {
-      await MessageModel.findByIdAndUpdate(message._id, {
-        status: "delivered",
-      });
-      io.to(message.sender._id.toString()).emit("changeMessageStatus", {
-        id: message._id,
-        status: "delivered",
-      });
-    });
+    // socket.on("messageDelivered", async (message) => {
+    //   await MessageModel.findByIdAndUpdate(message._id, {
+    //     status: "delivered",
+    //   });
+    //   io.to(message.sender._id.toString()).emit("changeMessageStatus", {
+    //     id: message._id,
+    //     status: "delivered",
+    //   });
+    // });
 
     // socket.on("messageRead", async (message) => {
     //   const res = await MessageModel.findByIdAndUpdate(message._id, {
@@ -241,7 +243,7 @@ const startSocket = (server) => {
 
     socket.on("messageDelivered", async (message) => {
       const queuedMsgIndex = writeQueue.findIndex(
-        (msg) => msg._id.toString() === message._id
+        (msg) => msg._id.toString() === message._id && msg.status != "read"
       );
 
       if (queuedMsgIndex !== -1) {
@@ -260,7 +262,7 @@ const startSocket = (server) => {
 
     socket.on("messageRead", async (message) => {
       const queuedMsgIndex = writeQueue.findIndex(
-        (msg) => msg._id.toString() === message._id
+        (msg) => msg._id.toString() === message._id 
       );
 
       if (queuedMsgIndex !== -1) {

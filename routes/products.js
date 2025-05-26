@@ -14,6 +14,10 @@ const {
   getUploadUrlProduct,
 } = require("../controllers/auth/aws/products/getUploadUrlProduct.js");
 const s3 = require("../src/config/aws.js");
+const {
+  getMediaUrls,
+} = require("../controllers/auth/aws/products/getProductMediaUrls.js");
+const e = require("express");
 
 router.post("/uploadURL", verifyToken, getUploadUrlProduct);
 
@@ -153,6 +157,16 @@ router.get("/", async (req, res) => {
     query = query.skip(skip).limit(Number(limit));
 
     const products = await query.exec();
+
+    products.map(async (e) => {
+      console.log("eee",e.images);
+    
+      e.images= await getMediaUrls(e.images);
+
+   
+    });
+    
+    
     const total = await ProductModel.countDocuments(queryFilter); // استخدام الفلتر المعدل
 
     res.json({
@@ -208,9 +222,8 @@ router.delete("/:id", verifyToken, async (req, res) => {
       return res.status(403).json({ msg: "غير مصرح بالحذف" });
     }
 
-   // delete aws images form product.images[] 
-   if (product.images) {
-      
+    // delete aws images form product.images[]
+    if (product.images) {
       product.images.forEach(async (image) => {
         const params = { Bucket: process.env.AWS_S3_BUCKET, Key: image };
         await s3.deleteObject(params).promise();
@@ -243,4 +256,5 @@ router.post("/:id/report", verifyToken, async (req, res) => {
   }
 });
 
+router.get("images/:id", async (req, res) => {});
 module.exports = router;
