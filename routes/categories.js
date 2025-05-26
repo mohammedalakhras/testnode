@@ -21,4 +21,13 @@ router.post("/", async (req, res) => {
   }
 });
 
+
+router.get("/:id", async (req, res) => {
+  try {
+    const allowedConditions = await CategoryModel.findById(req.params.id).select("allowedConditions");
+    res.json(allowedConditions);
+  } catch (error) {
+    res.status(500).json({ msg: error.message });
+  }
+});
 module.exports = router;

@@ -13,6 +13,7 @@ const { LocationModel } = require("../models/Location.js");
 const {
   getUploadUrlProduct,
 } = require("../controllers/auth/aws/products/getUploadUrlProduct.js");
+const s3 = require("../src/config/aws.js");
 
 router.post("/uploadURL", verifyToken, getUploadUrlProduct);
 
@@ -21,9 +22,8 @@ router.post("/", verifyToken, async (req, res) => {
   try {
     // Validate request body
 
-    const { error } = validateProduct(req.body);
-    if (error)
-      return res.status(400).json({ msg: error.details[0].message });
+    const { error } = await validateProduct(req.body);
+    if (error) return res.status(400).json({ msg: error.details[0].message });
 
     // Check seller status
     console.log("product");
@@ -63,8 +63,10 @@ router.get("/", async (req, res) => {
       category,
       location,
       search,
-      minPrice,
-      maxPrice,
+      minSYPPrice,
+      maxSYPPrice,
+      minUSDPrice,
+      maxUSDPrice,
       tags,
       page = 0,
       limit = 10,
@@ -88,10 +90,42 @@ router.get("/", async (req, res) => {
       filter["location.location"] = { $in: locIds };
     }
 
-    if (minPrice || maxPrice) {
-      filter["price.amount"] = {};
-      if (minPrice) filter["price.amount"].$gte = Number(minPrice);
-      if (maxPrice) filter["price.amount"].$lte = Number(maxPrice);
+    // if (minPrice || maxPrice) {
+    //   filter["price.amount"] = {};
+    //   if (minPrice) filter["price.amount"].$gte = Number(minPrice);
+    //   if (maxPrice) filter["price.amount"].$lte = Number(maxPrice);
+    // }
+
+    const moneyFilters = [];
+
+    // SYP range
+    if (minSYPPrice || maxSYPPrice) {
+      const sypFilter = {
+        "price.currency": "SYP",
+        "price.amount": {},
+      };
+      if (minSYPPrice != null)
+        sypFilter["price.amount"].$gte = Number(minSYPPrice);
+      if (maxSYPPrice != null)
+        sypFilter["price.amount"].$lte = Number(maxSYPPrice);
+      moneyFilters.push(sypFilter);
+    }
+
+    // USD range
+    if (minUSDPrice || maxUSDPrice) {
+      const usdFilter = {
+        "price.currency": "USD",
+        "price.amount": {},
+      };
+      if (minUSDPrice != null)
+        usdFilter["price.amount"].$gte = Number(minUSDPrice);
+      if (maxUSDPrice != null)
+        usdFilter["price.amount"].$lte = Number(maxUSDPrice);
+      moneyFilters.push(usdFilter);
+    }
+    // إذا تم تمرير أي مرشح سعري، نستخدم $or لجلب أي منتج يطابق واحداً من النطاقين
+    if (moneyFilters.length) {
+      filter.$or = moneyFilters;
     }
 
     if (tags) {
@@ -146,14 +180,13 @@ router.put("/:id", verifyToken, async (req, res) => {
     if (product.owner.toString() !== req.user.id && user.role !== "admin") {
       return res.status(403).json({ msg: "غير مصرح بالتعديل" });
     }
-    //check if req.body is not empty object 
+    //check if req.body is not empty object
     if (Object.keys(req.body).length === 0) {
       return res.status(400).json({ msg: "لا يوجد بيانات للتحديث" });
     }
 
-    const { error } = validateUpdateProduct(req.body);
-    if (error)
-      return res.status(400).json({ msg: error.details[0].message });
+    const { error } = await validateUpdateProduct(req.body, product.category);
+    if (error) return res.status(400).json({ msg: error.details[0].message });
 
     Object.assign(product, req.body);
     const updatedProduct = await product.save();
@@ -175,11 +208,19 @@ router.delete("/:id", verifyToken, async (req, res) => {
       return res.status(403).json({ msg: "غير مصرح بالحذف" });
     }
 
-    await product.remove();
-    res.json({ msg: "تم حذف المنتج" });
+   // delete aws images form product.images[] 
+   if (product.images) {
+      
+      product.images.forEach(async (image) => {
+        const params = { Bucket: process.env.AWS_S3_BUCKET, Key: image };
+        await s3.deleteObject(params).promise();
+      });
+    }
+    await product.deleteOne();
+    res.json({ msg: "تم حذف المنتج بنجاح" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ msg: "خطأ في حذف المنتج" });
+    res.status(500).json({ msg: "خطأ في حذف المنتج", error: error });
   }
 });
 

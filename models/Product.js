@@ -1,6 +1,8 @@
 const { default: mongoose } = require("mongoose");
 const joi = require("joi");
 
+const { CategoryModel } = require("./Category.js");
+
 const ProductSchema = new mongoose.Schema(
   {
     title: {
@@ -163,7 +165,8 @@ const ProductModel = mongoose.model("Product", ProductSchema);
 
 // Joi Validation Schema
 // Joi Validation Schema
-function validateProduct(obj) {
+async function validateProduct(obj) {
+  const allowedConditions = await getCategoryConditions(obj.category);
   const schema = joi.object({
     title: joi.string().min(5).max(100).required(),
 
@@ -188,7 +191,10 @@ function validateProduct(obj) {
       })
       .required(),
 
-    condition: joi.string().valid("new", "used").required(),
+    condition: joi
+      .string()
+      .valid(...allowedConditions)
+      .required(),
 
     // برغم أن الحقل isSold و status يُملأن تلقائيًا في السيرفر،
     // يمكنك تضمينهما هنا إذا أردت السماح بإرسال قيم مخصصة:
@@ -207,33 +213,79 @@ function validateProduct(obj) {
   return schema.validate(obj, { abortEarly: false });
 }
 
-function validateUpdateProduct(obj) {
-  const schema = joi
-    .object({
-      title: joi.string().min(5).max(100).optional(),
-      description: joi.string().min(10).max(2000).optional(),
-      price: joi
-        .object({
-          amount: joi.number().min(0).required(),
-          currency: joi.string().valid("USD", "SYP").required(),
-        })
-        .optional(),
-      category: joi.string().optional(),
-      location: joi
-        .object({
-          location: joi.string().required(),
-          details: joi.string().min(5).max(50).optional(),
-        })
-        .optional(),
-      condition: joi.string().valid("new", "used").optional(),
-      quantity: joi.number().min(1).optional(),
-      images: joi.array().items(joi.string()).min(1).optional(),
-      videos: joi.array().items(joi.string()).optional(),
-      tags: joi.array().items(joi.string().trim().max(20)).optional(),
-    })
-    .unknown(false); // Reject unknown fields
+async function validateUpdateProduct(obj, currentCategory) {
+  const validateObject = {
+    title: joi.string().min(5).max(100).optional(),
+    description: joi.string().min(10).max(2000).optional(),
+    price: joi
+      .object({
+        amount: joi.number().min(0).required(),
+        currency: joi.string().valid("USD", "SYP").required(),
+      })
+      .optional(),
+    category: joi.string().optional(),
+    location: joi
+      .object({
+        location: joi.string().required(),
+        details: joi.string().min(5).max(50).optional(),
+      })
+      .optional(),
+
+    quantity: joi.number().min(1).optional(),
+    images: joi.array().items(joi.string()).min(1).optional(),
+    videos: joi.array().items(joi.string()).optional(),
+    tags: joi.array().items(joi.string().trim().max(20)).optional(),
+  };
+  let categoryToCheck = obj.category || currentCategory;
+  if (categoryToCheck) {
+    const allowedConditions = await getCategoryConditions(categoryToCheck);
+    validateObject.condition = joi
+      .string()
+      .valid(...allowedConditions)
+      .optional();
+  }
+  const schema = joi.object(validateObject).unknown(false); // Reject unknown fields
 
   return schema.validate(obj);
+}
+
+async function getCategoryConditions(categoryId) {
+  if (!categoryId) {
+    return ["new", "used"];
+  }
+
+  // Fetch the category document
+  const category = await CategoryModel.findById(categoryId).lean();
+  if (!category) {
+    throw new Error("Category not found for ID: " + categoryId);
+  }
+
+  // Helper to return if array is non-empty
+  const isValidArray = (arr) => Array.isArray(arr) && arr.length > 0;
+
+  // 1. Check current category
+  if (isValidArray(category.allowedConditions)) {
+    console.log(category.allowedConditions);
+     
+    return category.allowedConditions;
+
+  }
+
+  // 2. Traverse ancestors (nearest first)
+  if (Array.isArray(category.ancestors)) {
+    for (let i = category.ancestors.length - 1; i >= 0; i--) {
+      const ancestorId = category.ancestors[i];
+      const ancestor = await CategoryModel.findById(ancestorId).lean();
+      if (ancestor && isValidArray(ancestor.allowedConditions)) {
+        console.log(ancestor.allowedConditions);
+        
+        return ancestor.allowedConditions;
+      }
+    }
+  }
+
+  // 3. Fallback defaults
+  return ["new", "used"];
 }
 
 module.exports = {

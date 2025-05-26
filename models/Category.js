@@ -24,14 +24,14 @@ const CategorySchema = new mongoose.Schema({
     default: null,
     validate: {
       validator: function (v) {
+        // treat null the same as empty-array
+        const arr = Array.isArray(v) ? v : [];
         const hasParent = this.parent != null;
-        if (hasParent) {
-          return v.length === 0;
-        } else {
-          return v.length > 0;
-        }
+        return hasParent
+          ? (arr.length === 0)
+          : (arr.length > 0);
       },
-      message: function () {
+      message() {
         return this.parent
           ? "allowedConditions must be empty when parent is present."
           : "allowedConditions must be non-empty when parent is not present.";
