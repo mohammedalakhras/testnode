@@ -87,10 +87,21 @@ const ProductSchema = new mongoose.Schema(
     },
     images: [
       {
-        type: String,
-        required: true,
+        high: {
+          type: String,
+          required: true,
+        },
+        med: {
+          type: String,
+          // required: true,
+        },
+        low: {
+          type: String,
+          // required: true,
+        },
       },
     ],
+
     videos: [
       {
         type: String, // CDN URLs
@@ -203,7 +214,19 @@ async function validateProduct(obj) {
 
     quantity: joi.number().min(1).optional(),
 
-    images: joi.array().items(joi.string()).min(1).required(),
+    images: joi
+      .array()
+      .items(
+        joi.object({
+          high: joi.string().required(),
+          med: joi.string(),
+          // .required()
+          low: joi.string(),
+          // .required()
+        })
+      )
+      .min(1)
+      .required(),
 
     videos: joi.array().items(joi.string()).optional(),
 
@@ -232,7 +255,16 @@ async function validateUpdateProduct(obj, currentCategory) {
       .optional(),
 
     quantity: joi.number().min(1).optional(),
-    images: joi.array().items(joi.string()).min(1).optional(),
+     images: joi.array()
+      .items(
+        joi.object({
+          high: joi.string().required(),
+          med: joi.string(),
+          low: joi.string()
+        })
+      )
+      .min(1)
+      .optional(),
     videos: joi.array().items(joi.string()).optional(),
     tags: joi.array().items(joi.string().trim().max(20)).optional(),
   };
@@ -266,9 +298,8 @@ async function getCategoryConditions(categoryId) {
   // 1. Check current category
   if (isValidArray(category.allowedConditions)) {
     console.log(category.allowedConditions);
-     
-    return category.allowedConditions;
 
+    return category.allowedConditions;
   }
 
   // 2. Traverse ancestors (nearest first)
@@ -278,7 +309,7 @@ async function getCategoryConditions(categoryId) {
       const ancestor = await CategoryModel.findById(ancestorId).lean();
       if (ancestor && isValidArray(ancestor.allowedConditions)) {
         console.log(ancestor.allowedConditions);
-        
+
         return ancestor.allowedConditions;
       }
     }
