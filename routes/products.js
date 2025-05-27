@@ -159,14 +159,11 @@ router.get("/", async (req, res) => {
     const products = await query.exec();
 
     products.map(async (e) => {
-      console.log("eee",e.images);
-    
-      e.images= await getMediaUrls(e.images);
+      console.log("eee", e.images);
 
-   
+      e.images = await getMediaUrls(e.images);
     });
-    
-    
+
     const total = await ProductModel.countDocuments(queryFilter); // استخدام الفلتر المعدل
 
     res.json({
@@ -256,5 +253,14 @@ router.post("/:id/report", verifyToken, async (req, res) => {
   }
 });
 
-router.get("images/:id", async (req, res) => {});
+router.get("/images/products/:id", async (req, res) => {
+  
+  try {
+    const urls =await getMediaUrls(req.params.id);
+
+    res.status(200).json({ url: urls });
+  } catch (err) {
+    res.status(500).json({ msg: "Server Error", err });
+  }
+});
 module.exports = router;

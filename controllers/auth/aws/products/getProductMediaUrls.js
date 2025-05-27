@@ -66,7 +66,7 @@ exports.getProductMediaUrls = async (req, res, next) => {
  * @param {boolean} download      - إذا true ستكون Content-Disposition attachment
  * @returns {Promise<string|string[]>}  - رابط واحد أو مصفوفة روابط
  */
-async function getMediaUrls(keys, download) {
+async function getMediaUrls(keys, download=false) {
 
   if(keys.length==0)
     return []
@@ -78,13 +78,14 @@ async function getMediaUrls(keys, download) {
         Bucket: process.env.AWS_S3_BUCKET,
         Key: `products/${key}`,
         Expires: 300,
-        // ResponseContentDisposition: download ? 'attachment' : 'inline'
+        ResponseContentDisposition: download ? 'attachment' : 'inline'
+       
+
       };
       return s3.getSignedUrlPromise('getObject', params);
     });
     // ننتظر جميع الروابط
     const urls = await Promise.all(promises);
-console.log(urls);
 
     return urls;
   }
@@ -94,7 +95,7 @@ console.log(urls);
     Bucket: process.env.AWS_S3_BUCKET,
     Key: `products/${keys}`,
     Expires: 300,
-    // ResponseContentDisposition: download ? 'attachment' : 'inline'
+    ResponseContentDisposition: download ? 'attachment' : 'inline'
   };
   const url = await s3.getSignedUrlPromise('getObject', params);
   return url;
