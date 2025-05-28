@@ -156,18 +156,19 @@ router.get("/", async (req, res) => {
     const skip = Number(page) * Number(limit);
     query = query.skip(skip).limit(Number(limit));
 
-    const products = await query.exec();
+    // const products = await query.exec();
+    const products = await ProductModel.find(queryFilter).lean().exec();
 
-    products.map(async (e) => {
-      console.log("eee", e.images);
-
-      e.images = await getMediaUrls(e.images);
-    });
+    const updatedProduct = await Promise.all(
+      products.map(async (e) => {
+        return { ...e, images: await getMediaUrls(e.images[0].low) };
+      })
+    );
 
     const total = await ProductModel.countDocuments(queryFilter); // استخدام الفلتر المعدل
 
     res.json({
-      data: products,
+      data: updatedProduct,
       pagination: {
         total,
         page: Number(page),
@@ -254,9 +255,8 @@ router.post("/:id/report", verifyToken, async (req, res) => {
 });
 
 router.get("/images/products/:id", async (req, res) => {
-  
   try {
-    const urls =await getMediaUrls(req.params.id);
+    const urls = await getMediaUrls(req.params.id);
 
     res.status(200).json({ url: urls });
   } catch (err) {
