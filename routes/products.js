@@ -161,7 +161,11 @@ router.get("/", async (req, res) => {
 
     const updatedProduct = await Promise.all(
       products.map(async (e) => {
-        return { ...e, images: await getMediaUrls(e.images[0].low) };
+     
+        const img=e.images[0].low.replace('products/',"")
+    
+        
+        return { ...e, images: await getMediaUrls(img) };
       })
     );
 
