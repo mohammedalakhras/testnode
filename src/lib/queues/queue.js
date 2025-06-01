@@ -6,7 +6,7 @@ const writeQueue = [];
 let writeTimer = null;
 
 function scheduleFlush() {
-  console.log("scheduleFlush", writeQueue.length,'\n',writeQueue);
+  console.log("scheduleFlush", writeQueue.length, "\n", writeQueue);
   // Flush immediately when we hit 20 messages
   if (writeQueue.length >= 20) {
     flushWrites();
@@ -28,14 +28,16 @@ async function flushWrites() {
 
   try {
     // Bulk insert all queued MessageModel docs
-    await MessageModel.bulkWrite(
+    const res = await MessageModel.bulkWrite(
       batch.map((doc) => ({
         // insertOne: { document: doc.toObject() },
 
-        filter: { _id: doc._id },
-        replacement: doc.toObject(),
-        upsert: true,
-      
+        replaceOne: {
+          // تم التصحيح هنا
+          filter: { _id: doc._id },
+          replacement: doc.toObject(),
+          upsert: true,
+        },
       })),
       { ordered: false }
     );
@@ -86,9 +88,17 @@ async function flushSpecificMessages(userId) {
 
   // Save them to DB immediately
   try {
-    await MessageModel.bulkWrite(
+    const res = await MessageModel.bulkWrite(
       userMessages.map((doc) => ({
-        insertOne: { document: doc.toObject() },
+        // insertOne: { document: doc.toObject() },
+
+        //new
+        replaceOne: {
+          // تم التصحيح هنا
+          filter: { _id: doc._id },
+          replacement: doc,
+          upsert: true,
+        },
       })),
       { ordered: false }
     );

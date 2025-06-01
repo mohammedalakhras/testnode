@@ -21,7 +21,6 @@ const startSocket = (server) => {
     try {
       const token =
         socket.handshake.auth?.token || socket.handshake.headers?.token;
-      console.log("token", socket.handshake.auth, socket.handshake.headers);
       if (!token) {
         return next(new Error("Authentication error: Token missing"));
       }
@@ -83,30 +82,87 @@ const startSocket = (server) => {
         lastSeen: "active",
       });
 
+      //   try {
+      //     // 1. جلب الرسائل المعلقة مرةً واحدة
+      //     const pendinginD = await MessageModel.find(
+      //       { receiver: socket.userId, status: "sent" },
+      //       { _id: 1, sender: 1 }
+      //     );
+
+      //      const pendingInQueue = writeQueue.filter(msg =>
+      //   msg.receiver.toString() === socket.userId.toString() &&
+      //   msg.status === "sent"
+      // );
+      // pe
+      //     console.log(["penndings", pending]);
+
+      //     if (pending.length > 0) {
+      //       // 2. تجهيز مصفوفة عمليات التحديث
+      //       const ops = pending.map((msg) => ({
+      //         updateOne: {
+      //           filter: { _id: msg._id },
+      //           update: { $set: { status: "delivered" } },
+      //         },
+      //       }));
+
+      //       // 3. تنفيذ جميع عمليات التحديث دفعة واحدة
+      //       await MessageModel.bulkWrite(ops, { ordered: false });
+      //       // :contentReference[oaicite:0]{index=0} :contentReference[oaicite:1]{index=1}
+
+      //       // 4. إرسال إشعارات لجميع المرسلين
+
+      //       pending.forEach((msg) => {
+      //         console.log("msg", msg);
+
+      //         io.to(msg.sender.toString()).emit("changeMessageStatus", {
+      //           id: msg._id,
+      //           status: "delivered",
+      //         });
+      //       });
+      //     }
+
+      //     console.log("signin took", Date.now() - start, "ms");
+      //   }
+
       try {
-        // 1. جلب الرسائل المعلقة مرةً واحدة
-        const pending = await MessageModel.find(
+        // 1. تحديث الرسائل في الرتل أولاً
+        const pendingInQueue = writeQueue.filter(
+          (msg) =>
+            msg.receiver.toString() === socket.userId.toString() &&
+            msg.status === "sent"
+        );
+        console.log("Pending in Queue", pendingInQueue);
+
+        pendingInQueue.forEach((msg) => {
+          // تحديث الحالة في الرتل
+          msg.status = "delivered";
+
+          // إرسال إشعار للمرسل
+          io.to(msg.sender.toString()).emit("changeMessageStatus", {
+            id: msg._id,
+            status: "delivered",
+          });
+        });
+
+        // 2. جلب الرسائل المعلقة من قاعدة البيانات
+        const pendingInDB = await MessageModel.find(
           { receiver: socket.userId, status: "sent" },
           { _id: 1, sender: 1 }
         );
+        console.log("PendingInDB", pendingInDB);
 
-        if (pending.length > 0) {
-          // 2. تجهيز مصفوفة عمليات التحديث
-          const ops = pending.map((msg) => ({
+        // 3. تحديث الرسائل في قاعدة البيانات
+        if (pendingInDB.length > 0) {
+          const ops = pendingInDB.map((msg) => ({
             updateOne: {
               filter: { _id: msg._id },
               update: { $set: { status: "delivered" } },
             },
           }));
 
-          // 3. تنفيذ جميع عمليات التحديث دفعة واحدة
           await MessageModel.bulkWrite(ops, { ordered: false });
-          // :contentReference[oaicite:0]{index=0} :contentReference[oaicite:1]{index=1}
 
-          // 4. إرسال إشعارات لجميع المرسلين
-          pending.forEach((msg) => {
-            console.log('msg', msg);
-            
+          pendingInDB.forEach((msg) => {
             io.to(msg.sender.toString()).emit("changeMessageStatus", {
               id: msg._id,
               status: "delivered",
@@ -139,8 +195,6 @@ const startSocket = (server) => {
         sentAt: messageWithSender.sentAt,
       });
       // console.log("message", message);
-      writeQueue.push(message);
-      scheduleFlush();
 
       if (data.media) {
         messageWithSender.media = data.media;
@@ -153,71 +207,81 @@ const startSocket = (server) => {
         messageWithSender.receiver,
         "photo fullName lastLoginTime fcmTokens"
       ).lean();
-
-      try {
-        // sendNotification(receiverData.fcmTokens, {
-        //   title: `رسالة جديدة من ${socket.userData.fullName}`,
-        //   body: message.content,
-        //   data: { k1: "v1" },
-        // });
-        const payload = {
-          title: `رسالة جديدة من 
+      if (receiverData) {
+        writeQueue.push(message);
+        scheduleFlush();
+        try {
+          // sendNotification(receiverData.fcmTokens, {
+          //   title: `رسالة جديدة من ${socket.userData.fullName}`,
+          //   body: message.content,
+          //   data: { k1: "v1" },
+          // });
+          const payload = {
+            title: `رسالة جديدة من 
                 ${socket.userData.fullName}
                `,
-          body:
-            `${message.media.type ? message.media.type : "رسالة نصية"}
+            body:
+              `${message.media.type ? message.media.type : "رسالة نصية"}
             ${data.content}
                 ` || "",
-          data: { type: "message", senderId: socket.userId.toString() },
+            data: { type: "message", senderId: socket.userId.toString() },
+          };
+          if (receiverData.fcmTokens)
+            if (receiverData.fcmTokens.length > 0)
+              enqueueNotification(receiverData.fcmTokens, payload);
+        } catch (err) {
+          console.error("FCM Error:", err);
+        }
+        const updatedConversation = {
+          chatPartner: messageWithSender.receiver,
+          fullName:
+            messageWithSender.sender._id.toString() !==
+            messageWithSender.receiver.toString()
+              ? receiverData.fullName
+              : "Saved Messages",
+          lastMessage: messageWithSender.content,
+          lastMessageDate: messageWithSender.sentAt,
+          photo: receiverData.photo ? receiverData.photo : null,
+          lastLoginTime: receiverData.lastLoginTime,
         };
-        enqueueNotification(receiverData.fcmTokens, payload);
-      } catch (err) {
-        console.error("FCM Error:", err);
-      }
-      const updatedConversation = {
-        chatPartner: messageWithSender.receiver,
-        fullName:
-          messageWithSender.sender._id.toString() !==
-          messageWithSender.receiver.toString()
-            ? receiverData.fullName
-            : "Saved Messages",
-        lastMessage: messageWithSender.content,
-        lastMessageDate: messageWithSender.sentAt,
-        photo: receiverData.photo ? receiverData.photo : null,
-        lastLoginTime: receiverData.lastLoginTime,
-      };
 
-      io.to(messageWithSender.sender._id.toString()).emit(
-        "updatedMessage",
-        updatedConversation
-      );
+        console.log("iiiidddd", messageWithSender.sender._id.toString());
 
-      io.to(messageWithSender.sender._id.toString()).emit(
-        "LoadNewMessage",
-        messageWithSender
-      );
-      io.to(messageWithSender.receiver.toString()).emit("receive", {
-        ...messageWithSender,
-        lastLoginTime: socket.userData.lastLoginTime,
-      });
-
-      // التحقق مما إذا كان المستلم متصلاً (بوجوده في غرفته)
-      const receiverRoom = io.sockets.adapter.rooms.get(
-        messageWithSender.receiver.toString()
-      );
-      if (receiverRoom && receiverRoom.size > 0) {
-        await MessageModel.findByIdAndUpdate(message._id, {
-          status: "delivered",
-        });
         io.to(messageWithSender.sender._id.toString()).emit(
-          "changeMessageStatus",
-          {
-            id: message._id,
-            status: "delivered",
-          }
+          "updatedMessage",
+          updatedConversation
         );
+
+        io.to(messageWithSender.sender._id.toString()).emit(
+          "LoadNewMessage",
+          messageWithSender
+        );
+        io.to(messageWithSender.receiver.toString()).emit("receive", {
+          ...messageWithSender,
+          lastLoginTime: socket.userData.lastLoginTime,
+        });
+
+        // التحقق مما إذا كان المستلم متصلاً (بوجوده في غرفته)
+        const receiverRoom = io.sockets.adapter.rooms.get(
+          messageWithSender.receiver.toString()
+        );
+        if (receiverRoom && receiverRoom.size > 0) {
+          await MessageModel.findByIdAndUpdate(message._id, {
+            status: "delivered",
+          });
+          io.to(messageWithSender.sender._id.toString()).emit(
+            "changeMessageStatus",
+            {
+              id: message._id,
+              status: "delivered",
+            }
+          );
+        }
+      } else {
+        io.to(messageWithSender.sender._id.toString()).emit("UserNotFound", {
+          error: "المستخدم غير موجود",
+        });
       }
-      console.log("time", new Date().getMilliseconds() - time);
     });
 
     // socket.on("messageDelivered", async (message) => {
@@ -262,7 +326,7 @@ const startSocket = (server) => {
 
     socket.on("messageRead", async (message) => {
       const queuedMsgIndex = writeQueue.findIndex(
-        (msg) => msg._id.toString() === message._id 
+        (msg) => msg._id.toString() === message._id
       );
 
       if (queuedMsgIndex !== -1) {
