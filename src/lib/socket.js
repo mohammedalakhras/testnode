@@ -245,8 +245,6 @@ const startSocket = (server) => {
           lastLoginTime: receiverData.lastLoginTime,
         };
 
-        console.log("iiiidddd", messageWithSender.sender._id.toString());
-
         io.to(messageWithSender.sender._id.toString()).emit(
           "updatedMessage",
           updatedConversation
@@ -269,6 +267,7 @@ const startSocket = (server) => {
           await MessageModel.findByIdAndUpdate(message._id, {
             status: "delivered",
           });
+
           io.to(messageWithSender.sender._id.toString()).emit(
             "changeMessageStatus",
             {

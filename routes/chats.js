@@ -13,7 +13,7 @@ const { chatMediaDownloader } = require("../controllers/auth/aws/chats/getChatMe
  * @method GET
  * @access private
  */
-router.get("/MyChats", verifyToken, myChats);
+router.get("/MyChats/:pageID", verifyToken, myChats);
 
 /**
  * @description get messages with specefic user ordered by date.

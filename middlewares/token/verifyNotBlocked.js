@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
+const { UserModel } = require("../../models/User");
 
-const verifyToken = (req, res, next) => {
+const verifyNotBlocked = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1]; // Bearer <token>
 
@@ -13,9 +14,18 @@ const verifyToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRETE_KEY);
-    console.log(decoded);
+
+    const user = await UserModel.findById(decoded.id).select("state");
+
     req.user = decoded;
-    next();
+
+    if (user.state === "active") next();
+    else {
+      return res.status(403).json({
+        success: false,
+        msg: "حسابك محظور راجع فريق الدعم.",
+      });
+    }
   } catch (error) {
     return res.status(403).json({
       success: false,
@@ -24,4 +34,4 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-module.exports = { verifyToken };
+module.exports = { verifyNotBlocked };

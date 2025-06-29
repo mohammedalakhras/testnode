@@ -99,7 +99,7 @@ const ProductSchema = new mongoose.Schema(
           type: String,
           // required: true,
         },
-          _id: false,
+        _id: false,
       },
     ],
 
@@ -128,6 +128,14 @@ const ProductSchema = new mongoose.Schema(
         createdAt: { type: Date, default: Date.now },
       },
     ],
+    phone: {
+      type: String,
+      trim: true,
+      minlength: 8,
+      maxlength: 20,
+      match: [/^\+?[0-9\- ]+$/, "Invalid phone format"],
+      required: false, // still optional
+    },
     expiresAt: {
       type: Date,
       //after 30 day
@@ -176,7 +184,7 @@ ProductSchema.index({ location: 1, status: 1, expiresAt: 1 });
 const ProductModel = mongoose.model("Product", ProductSchema);
 
 // Joi Validation Schema
-// Joi Validation Schema
+
 async function validateProduct(obj) {
   const allowedConditions = await getCategoryConditions(obj.category);
   const schema = joi.object({
@@ -202,7 +210,17 @@ async function validateProduct(obj) {
         details: joi.string().min(5).max(50).optional(),
       })
       .required(),
-
+     phone: joi
+      .string()
+      .pattern(/^\+?[0-9\- ]+$/)
+      .min(8)
+      .max(20)
+      .optional()
+      .messages({
+        "string.pattern.base": "رقم الهاتف غير صحيح",
+        "string.min": "رقم الهاتف لا يمكن أن يكون أقل من 8 أرقام",
+        "string.max": "رقم الهاتف لا يمكن أن يتجاوز 20 حرفًا",
+      }),
     condition: joi
       .string()
       .valid(...allowedConditions)
@@ -247,6 +265,17 @@ async function validateUpdateProduct(obj, currentCategory) {
         currency: joi.string().valid("USD", "SYP").required(),
       })
       .optional(),
+       phone: joi
+      .string()
+      .pattern(/^\+?[0-9\- ]+$/)
+      .min(8)
+      .max(20)
+      .optional()
+      .messages({
+        "string.pattern.base": "رقم الهاتف غير صحيح",
+        "string.min": "رقم الهاتف لا يمكن أن يكون أقل من 8 أرقام",
+        "string.max": "رقم الهاتف لا يمكن أن يتجاوز 20 حرفًا",
+      }),
     category: joi.string().optional(),
     location: joi
       .object({
@@ -256,12 +285,13 @@ async function validateUpdateProduct(obj, currentCategory) {
       .optional(),
 
     quantity: joi.number().min(1).optional(),
-     images: joi.array()
+    images: joi
+      .array()
       .items(
         joi.object({
           high: joi.string().required(),
           med: joi.string(),
-          low: joi.string()
+          low: joi.string(),
         })
       )
       .min(1)

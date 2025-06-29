@@ -4,6 +4,10 @@ const { flushSpecificMessages } = require("../../src/lib/queues/queue.js");
 
 exports.myChats = async (req, res) => {
   try {
+    const { page = 0 } = req.params.pageID;
+    const limit = 10;
+    const skip = Number(page) * Number(limit);
+
     const userId = req.user.id;
     const userObjectId = new mongoose.Types.ObjectId(userId);
     await flushSpecificMessages(userId);
@@ -14,7 +18,7 @@ exports.myChats = async (req, res) => {
         },
       },
       {
-        $sort: {  sentAt: -1,createdAt: -1 },
+        $sort: { sentAt: -1, createdAt: -1 },
       },
       {
         $addFields: {
@@ -45,7 +49,7 @@ exports.myChats = async (req, res) => {
             },
           },
           lastMessage: { $first: "$content" },
-          lastMessageDate: { $first: "$createdAt" },
+          lastMessageDate: { $first: "$sentAt" },
           lastMessageId: { $first: "$_id" },
         },
       },
@@ -90,6 +94,8 @@ exports.myChats = async (req, res) => {
       {
         $sort: { lastMessageDate: -1 },
       },
+      { $skip: skip },
+      { $limit: Number(limit) },
     ]);
 
     return res.json(messagesAggregate);

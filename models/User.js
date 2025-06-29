@@ -104,7 +104,7 @@ const UserSchema = new mongoose.Schema(
 
     location: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "City",
+      ref: "Location",
     },
     // when alerts>=3 => state:blocked
     numberOfAlerts: {
@@ -118,7 +118,7 @@ const UserSchema = new mongoose.Schema(
     },
     verifiedStatus: {
       type: String,
-      enum: ["Normal", "Verified Company", "Verified Account"],
+      enum: ["Normal", "Verified Company", "Verified Shop", "Verified Account"],
       default: "Normal",
     },
     photo: {
@@ -130,12 +130,20 @@ const UserSchema = new mongoose.Schema(
       trim: true,
     },
     rate: {
-      stars: {
+      positiveCount: {
+        // كان number
         type: Number,
         default: 0,
         min: 0,
       },
-      number: {
+      starsSum: {
+        // كان stars
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      negativeCount: {
+        // جديد
         type: Number,
         default: 0,
         min: 0,
@@ -167,7 +175,7 @@ const UserSchema = new mongoose.Schema(
     // ],
     role: {
       type: String,
-      enum: ["user", "admin", "moderator"],
+      enum: ["user", "admin"],
       default: "user",
     },
     lastLoginTime: {
@@ -217,8 +225,6 @@ const UserSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-
-
 
 UserSchema.index({ email: 1 }, { unique: true });
 UserSchema.index({ username: 1 }, { unique: true });

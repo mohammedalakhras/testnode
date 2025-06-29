@@ -19,7 +19,7 @@ const replySchema = new mongoose.Schema(
     },
   },
   { timestamps: true }
-); 
+);
 
 const commentSchema = new mongoose.Schema({
   content: {
@@ -36,6 +36,11 @@ const commentSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
+    required: true,
+  },
+  private: {
+    type: Boolean,
+    default: false,
     required: true,
   },
   createdAt: {

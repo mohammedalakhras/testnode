@@ -101,5 +101,4 @@ async function getMediaUrls(keys, download=false) {
   return url;
 }
 
-// إذا أردت التصدير (import) الدالة في ملفات أخرى
 exports.getMediaUrls = getMediaUrls;

@@ -1,63 +1,32 @@
 const express = require("express");
 const router = express.Router();
-const Comment = require("../models/Comment.js");
+
+const addComment = require("../controllers/comment/addComment.js");
+const deleteComment = require("../controllers/comment/deleteComments.js");
+const getCommentsByProduct = require("../controllers/comment/getCommentsByProduct.js");
+const getRepliesByComment = require("../controllers/comment/getRepliesByComment.js");
+const addReplyToComment = require("../controllers/comment/addReplyToComment.js");
+const deleteReply = require("../controllers/comment/deleteReply.js");
+
+//middlewares
 const { verifyToken } = require("../middlewares/token/verifyToken.js");
+const {
+  verifyNotBlocked,
+} = require("../middlewares/token/verifyNotBlocked.js");
+const {
+  checkTokenExists,
+} = require("../middlewares/token/checkTokenExists.js");
+const { fillRole } = require("../middlewares/admin/fillRole.js");
+const { fillUsername } = require("../middlewares/admin/fillUsername.js");
 
+router.delete("/replies/", verifyToken, fillRole,deleteReply);
+//comments
+router.post("/", verifyNotBlocked, addComment);
+router.delete("/:commentId", verifyToken,fillRole, deleteComment);
+router.get("/", checkTokenExists, fillRole, getCommentsByProduct);
 
-
-
-async function addReplyToComment(commentId, userId, content) {
-    try {
-      // Find the comment by ID
-      const comment = await CommentModel.findById(commentId);
-      
-      if (!comment) {
-        throw new Error('Comment not found');
-      }
-      
-      // Create a new reply object
-      const newReply = {
-        content,
-        user: userId,
-        createdAt: new Date()
-      };
-      
-      // Add the reply to the comment's replies array
-      comment.replies.push(newReply);
-      
-      // Save the updated comment
-      await comment.save();
-      
-      // Return the updated comment
-      return comment;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-router.post("/", verifyToken, async (req, res) => {
-    try {
-      const { commentId } = req.params;
-      const { content } = req.body;
-      const userId = req.user.id; 
-      
-      const updatedComment = await addReplyToComment(commentId, userId, content);
-      
-      res.status(201).json({
-        success: true,
-        data: updatedComment
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        msg: error.message
-      });
-    }
-  });
-
-
-
-
+//replies
+router.get("/:commentId/replies", getRepliesByComment);
+router.post("/replies", verifyNotBlocked,fillUsername, addReplyToComment);
 
 module.exports = router;
-
