@@ -1,77 +1,91 @@
-// controllers/user/ratings/getRatings.js
-
 const { RatingModel } = require("../../../models/Rating.js");
-const { UserModel } = require("../../../models/User.js");
 const mongoose = require("mongoose");
 
 async function getRatings(req, res) {
   const { userId } = req.params;
-  const { type = "positive", page = 1, limit = 10 } = req.query;
+  let { type = "positive", page = 0, limit = 10 } = req.query;
 
+  page = Math.max(0, parseInt(page, 10));
+  limit = Math.max(1, Math.min(100, parseInt(limit, 10)));
+
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res.status(400).json({ msg: "معرّف المستخدم غير صالح." });
+  }
   if (!["positive", "negative"].includes(type)) {
     return res.status(400).json({ msg: "نوع التقييم غير صالح." });
   }
 
-  if (!mongoose.Types.ObjectId.isValid(userId)) {
-    return res.status(400).json({ msg: "معرف المستخدم غير صالح." });
-  }
+  const userOid = new mongoose.Types.ObjectId(userId);
 
   try {
-    const matchFilter = {
-      targetUser: userId,
-      type,
-    };
+    const totalCount = await RatingModel.countDocuments({
+      targetUser: userOid,
+    });
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const totalPositiveCount = await RatingModel.countDocuments({
+      targetUser: userOid,
+      type: "positive",
+    });
 
-    // 1) جلب التقييمات مع التصفح
-    const ratings = await RatingModel.find(matchFilter)
-      .populate("author", "fullName username photo")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
+    const totalNegativeCount = await RatingModel.countDocuments({
+      targetUser: userOid,
+      type: "negative",
+    });
 
-    // 2) عدد التقييمات لهذا النوع
-    const totalCount = await RatingModel.countDocuments(matchFilter);
-
-    // 3) إحصائيات النجوم للتقييمات الإيجابية فقط
-    let starsStats = {};
-    let averageStars = 0;
-    let totalPositiveCount = 0;
-
-    if (type === "positive") {
-      const result = await RatingModel.aggregate([
-        { $match: { targetUser: new mongoose.Types.ObjectId(userId), type: "positive" } },
-        {
-          $group: {
-            _id: "$stars",
-            count: { $sum: 1 },
-          },
+    const starsAgg = await RatingModel.aggregate([
+      { $match: { targetUser: userOid, type: "positive" } },
+      {
+        $group: {
+          _id: "$stars",
+          count: { $sum: 1 },
         },
-      ]);
+      },
+    ]);
 
-      result.forEach((item) => {
-        starsStats[item._id] = item.count;
-      });
+    const starsStats = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let sumStars = 0;
+    starsAgg.forEach(({ _id: stars, count }) => {
+      starsStats[stars] = count;
+      sumStars += stars * count;
+    });
 
-      // جلب بيانات المتوسط
-      const user = await UserModel.findById(userId).select("rate");
-      if (user?.rate) {
-        totalPositiveCount = user.rate.positiveCount || 0;
-        const starsSum = user.rate.starsSum || 0;
-        averageStars = totalPositiveCount > 0 ? (starsSum / totalPositiveCount).toFixed(1) : 0;
-      }
-    }
+    const averageStars =
+      totalPositiveCount > 0 ? (sumStars / totalPositiveCount).toFixed(1) : 0;
+
+    const ratings = await RatingModel.find({
+      targetUser: userOid,
+      type,
+    })
+      .select("_id targetUser author type text replies")
+      .populate("author", "fullName username photo")
+      .populate("replies.author", "fullName username photo")
+      .sort({ createdAt: -1 })
+      .skip(page * limit)
+      .limit(limit)
+      .lean();
 
     return res.json({
-      totalCount,             // عدد التقييمات من هذا النوع (type)
-      ratings,                // التقييمات نفسها
-      starsStats,             // توزيع النجوم (فقط للتقييمات الإيجابية)
-      averageStars,           // المتوسط النهائي
-      totalPositiveCount,     // عدد التقييمات الإيجابية (للاستخدام في الواجهة)
+      totalCount, //  (positive + negative)
+      totalPositiveCount,
+      totalNegativeCount,
+      starsStats,
+      averageStars,
+      ratings: ratings.map((r) => {
+        const repliesCount = r.replies.length;
+        const latestReply = repliesCount
+          ? r.replies.sort(
+              (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+            )[0]
+          : null;
+        return {
+          ...r,
+          repliesCount,
+          latestReply,
+        };
+      }),
     });
   } catch (err) {
-    console.error(err);
+    console.error("Error in getRatings:", err);
     return res.status(500).json({ msg: "خطأ في السيرفر أثناء جلب التقييمات." });
   }
 }

@@ -21,6 +21,7 @@ startSocket(server);
 
 // Routes
 app.use("/api/users", require("../routes/auth.js"));
+app.use("/api/sections", require("../routes/sections.js"));
 app.use("/api/chats", require("../routes/chats.js"));
 app.use("/api/products", require("../routes/products.js"));
 app.use("/api/locations", require("../routes/locations.js"));
@@ -28,7 +29,9 @@ app.use("/api/categories", require("../routes/categories.js"));
 app.use("/api/following", require("../routes/following.js"));
 app.use("/api/comments", require("../routes/comments.js"));
 app.use("/api/ratings", require("../routes/ratings.js"));
-
+app.use("/api/reports", require("../routes/reports.js"));
+app.use("/api/verification", require("../routes/verificationsRequest.js"));
+app.use("/api/notifications", require("../routes/notifications.js"));
 
 connectToDB();
 startServer(server);

@@ -2,6 +2,9 @@ const mongoose = require("mongoose");
 const { CommentModel } = require("../../models/Comment.js");
 
 const { sendNotification } = require("../../src/lib/notificationService.js"); // مسار دالتك للإشعارات
+const {
+  createAndSendNotification,
+} = require("../../services/notificationService.js");
 
 /**
  *
@@ -30,10 +33,8 @@ async function addReplyToComment(req, res) {
     if (!comment)
       return res.status(404).json({ message: "التعليق غير موجود." });
 
-    const productOwner = comment.product.owner; 
-    const commentOwner = comment.user; 
-
-
+    const productOwner = comment.product.owner;
+    const commentOwner = comment.user;
 
     comment.replies.push({
       content,
@@ -42,27 +43,32 @@ async function addReplyToComment(req, res) {
     });
     await comment.save();
 
-
-    const tokensToNotify = new Set();
+    // const tokensToNotify = new Set();
+    const userIDs = new Set();
 
     if (productOwner._id.toString() !== userId.toString()) {
-      (productOwner.fcmTokens || []).forEach((t) => tokensToNotify.add(t));
+      // (productOwner.fcmTokens || []).forEach((t) => tokensToNotify.add(t));
+      userIDs.add(productOwner._id.toString());
     }
     if (commentOwner._id.toString() !== userId.toString()) {
-      (commentOwner.fcmTokens || []).forEach((t) => tokensToNotify.add(t));
+      // (commentOwner.fcmTokens || []).forEach((t) => tokensToNotify.add(t));
+      userIDs.add(commentOwner._id.toString());
     }
 
-    if (tokensToNotify.size > 0) {
-      const payload = {
-        title: "تم الرد على تعليق",
-        body: ` قام ${req.user.username} بالرد على تعليق \n "${content.slice(
-          0,
-          25
-        )}..."`,
-        data: { commentId: commentId.toString(), type: "new_reply" },
-      };
-      await sendNotification(Array.from(tokensToNotify), payload);
-    }
+    // if (tokensToNotify.size > 0) {
+    const payload = {
+      title: "تم الرد على تعليق",
+      body: ` قام ${req.user.username} بالرد على تعليق \n "${content.slice(
+        0,
+        25
+      )}..."`,
+      data: { commentId: commentId.toString(), type: "new_reply" },
+    };
+    // await sendNotification(Array.from(tokensToNotify), payload);
+    
+    await createAndSendNotification([...userIDs], payload);
+
+    // }
 
     return res.status(201).json({ message: "تم إضافة الرد بنجاح." });
   } catch (err) {

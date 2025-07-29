@@ -1,5 +1,6 @@
 const { Follow, followValidationSchema } = require("../../models/Follow.js");
 const { UserModel } = require("../../models/User.js");
+const { createAndSendNotification } = require("../../services/notificationService.js");
 
 exports.followUser = async (req, res) => {
   try {
@@ -39,6 +40,13 @@ exports.followUser = async (req, res) => {
 
     const follow = new Follow({ follower, followee });
     await follow.save();
+
+    const payload = {
+      title: "قام مستخدم جديد بمتابعتك",
+      body: ` قام ${req.user.username} بمتابعتك`,
+      data: { follower:follower, type: "new_follower" },
+    };
+    await createAndSendNotification([followee], payload);
 
     res.status(201).json(follow);
   } catch (error) {

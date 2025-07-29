@@ -11,7 +11,6 @@ const ReplySchema = new mongoose.Schema({
 
 const RatingSchema = new mongoose.Schema({
   targetUser: {
-    // الشخص الذي يُقيّم
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,

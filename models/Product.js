@@ -74,6 +74,10 @@ const ProductSchema = new mongoose.Schema(
       default: false,
       required: true,
     },
+    market:{
+      type:Boolean,
+      default:false
+    },
     status: {
       type: String,
       enum: ["Approved", "Rejected", "Pending", "Violation"],

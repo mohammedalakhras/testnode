@@ -2,6 +2,25 @@ const mongoose = require("mongoose");
 const joi = require("joi");
 const jwt = require("jsonwebtoken");
 
+const SectionSchema = new mongoose.Schema(
+  {
+    order: { type: Number, required: true },
+    name: { type: String, required: true, trim: true, maxlength: 100 },
+    content: {
+      type: String,
+      required: true,
+      // سيمرّ من خلال استبدال tokens → URLs
+    },
+    keys: {
+      // خريطة token → s3 key
+      type: Map,
+      of: String,
+      default: {},
+    },
+  },
+  { _id: true }
+);
+
 const UserSchema = new mongoose.Schema(
   {
     email: {
@@ -153,13 +172,10 @@ const UserSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
-    sections: [
-      {
-        order: { type: Number, required: true },
-        name: { type: String, required: true },
-        content: { type: String, required: true },
-      },
-    ],
+    sections: {
+      type: [SectionSchema],
+      validate: [(arr) => arr.length <= 6, "لا يمكن أن يتجاوز عدد الأقسام 6"],
+    },
 
     // followers: [
     //   {
@@ -315,9 +331,47 @@ function validateProfileUpdate(data) {
 
 const UserModel = new mongoose.model("User", UserSchema);
 
+const validateSection = (obj) => {
+  const schema = joi.object({
+    order: joi.number().integer().min(1).required(),
+    name: joi.string().trim().max(100).required(),
+    content: joi.string().max(2048).required(),
+    keys: joi
+      .object()
+      .pattern(
+        joi.string().pattern(/^@?\w+$/), // token, e.g. img1 أو @img1
+        joi.string().min(1) // s3 key
+      )
+      .required(),
+  });
+
+  return schema.validate(obj, { abortEarly: false });
+};
+
+function validateUpdateSection(obj) {
+  const schema = joi
+    .object({
+      order: joi.number().integer().min(1),
+      name: joi.string().trim().max(100),
+      content: joi.string(),
+      keys: joi.object().pattern(
+        joi.string().pattern(/^@?\w+$/), // token
+        joi.string().min(1) // s3 key
+      ),
+    })
+    .or("order", "name", "content", "keys") // at least one required
+    .messages({
+      "object.missing":
+        "يجب تمرير حقل واحد على الأقل من: order, name, content, keys.",
+    });
+
+  return schema.validate(obj, { abortEarly: false });
+}
 module.exports = {
   UserModel,
   validateLoginByUsername,
   validateRegisterUser,
   validateProfileUpdate,
+  validateSection,
+  validateUpdateSection,
 };

@@ -1,12 +1,16 @@
 const { validateAddRating, RatingModel } = require("../../../models/Rating.js");
 const { UserModel } = require("../../../models/User.js");
 const mongoose = require("mongoose");
+const {
+  createAndSendNotification,
+} = require("../../../services/notificationService.js");
 
 async function addRating(req, res) {
   const { userId } = req.params;
   const { type, stars, text } = req.body;
   const authorId = req.user.id;
-
+  if (!authorId) {
+  }
   if (!mongoose.Types.ObjectId.isValid(userId)) {
     return res.status(400).json({ msg: "معرف المستخدم غير صالح." });
   }
@@ -65,6 +69,35 @@ async function addRating(req, res) {
       { runValidators: true }
     );
 
+    try {
+      const notificationType =
+        type === "positive" ? "تقييم إيجابي" : "تقييم سلبي";
+
+      const notificationTitle = `لقد تلقيت ${notificationType}`;
+
+      const notificationBody =
+        type === "positive"
+          ? `قام ${authorUser.username} بتقييمك بـ ${stars} نجوم${
+              text ? " مع تعليق" : ""
+            }`
+          : `قام ${authorUser.username} بتقييمك سلبيًا${
+              text ? " مع تعليق" : ""
+            }`;
+
+      const payload = {
+        title: notificationTitle,
+        body: notificationBody,
+        data: {
+          ratingId: rating._id,
+          type: "new_rating",
+          ratingType: type,
+        },
+      };
+
+      await createAndSendNotification([userId], payload);
+    } catch (notifError) {
+      console.error("Failed to send rating notification:", notifError);
+    }
     res.status(201).json({ msg: "تمت إضافة التقييم بنجاح", rating: rating });
   } catch (err) {
     try {

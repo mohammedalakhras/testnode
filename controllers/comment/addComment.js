@@ -3,6 +3,9 @@ const { CommentModel } = require("../../models/Comment.js");
 const { ProductModel } = require("../../models/Product.js");
 const { UserModel } = require("../../models/User.js");
 const { sendNotification } = require("../../src/lib/notificationService.js");
+const {
+  createAndSendNotification,
+} = require("../../services/notificationService.js");
 
 async function addComment(req, res) {
   try {
@@ -36,18 +39,19 @@ async function addComment(req, res) {
       const userData = await UserModel.findById(req.user.id)
         .select("username")
         .lean();
-      const tokens = product.owner.fcmTokens || [];
-      if (Array.isArray(tokens) && tokens.length > 0) {
-        const payload = {
-          title: "تم إضافة تعليق جديد",
-          body: `علّق ${userData.username}  على منتجك: "${content.slice(
-            0,
-            30
-          )}..."`,
-          data: { productId: productId.toString(), type: "new_comment" },
-        };
-        await sendNotification(tokens, payload);
-      }
+      // const tokens = product.owner.fcmTokens || [];
+      // if (Array.isArray(tokens) && tokens.length > 0) {
+      const payload = {
+        title: "تم إضافة تعليق جديد",
+        body: `علّق ${userData.username}  على منتجك: "${content.slice(
+          0,
+          30
+        )}..."`,
+        data: { productId: productId.toString(), type: "new_comment" },
+      };
+      // await sendNotification(tokens, payload);
+      await createAndSendNotification([productOwnerId], payload);
+      // }
     }
 
     return res

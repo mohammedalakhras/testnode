@@ -13,6 +13,8 @@ exports.getProducts = async (req, res) => {
       maxSYPPrice,
       minUSDPrice,
       maxUSDPrice,
+      condition,
+      market,
       tags,
       page = 0,
       limit = 10,
@@ -26,6 +28,21 @@ exports.getProducts = async (req, res) => {
     };
 
     if (category) filter.category = new mongoose.Types.ObjectId(category);
+
+    if (condition) {
+      const conditions = Array.isArray(condition)
+        ? condition
+        : condition.split(",").map((c) => c.trim());
+
+      filter.condition = { $in: conditions };
+    }
+    if (market) {
+      if (market == "true") {
+        filter.market = true;
+      } else {
+        filter.market = false;
+      }
+    }
 
     if (location) {
       // 1) نحول الباراميتر array أو comma-separated string إلى مصفوفة من الـ IDs
@@ -113,13 +130,21 @@ exports.getProducts = async (req, res) => {
     query = query.skip(skip).limit(Number(limit));
 
     // const products = await query.exec();
-    const products = await ProductModel.find(queryFilter).lean().exec();
+    const products = await ProductModel.find(queryFilter)
+      .select(
+        "title description price category owner location market condition status images tags expiresAt"
+      )
+      .populate("owner", "username photo rate")
+      .populate("location.location", "name")
+      .populate("category", "name")
+      .lean()
+      .exec();
 
     const updatedProduct = await Promise.all(
       products.map(async (e) => {
         const img = e.images[0].low.replace("products/", "");
 
-        return { ...e, images: await getMediaUrls(img) };
+        return { ...e, images: [await getMediaUrls(img)] };
       })
     );
 

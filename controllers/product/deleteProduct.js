@@ -1,9 +1,9 @@
 const { ProductModel } = require("../../models/Product.js");
-const { UserModel } = require("../../models/User.js");
+const { CommentModel } = require("../../models/Comment.js");
 const s3 = require("../../src/config/aws.js");
+const { ReportModel } = require("../../models/Report.js");
 
-
-exports.deleteProduct=async (req, res) => {
+exports.deleteProduct = async (req, res) => {
   try {
     const product = await ProductModel.findById(req.params.id);
     if (!product) return res.status(404).json({ msg: "المنتج غير موجود" });
@@ -27,19 +27,24 @@ exports.deleteProduct=async (req, res) => {
     }
 
     if (objectsToDelete.length > 0) {
-    const del=  await s3
+      const del = await s3
         .deleteObjects({
           Bucket: process.env.AWS_S3_BUCKET,
           Delete: { Objects: objectsToDelete, Quiet: false },
         })
         .promise();
-       
     }
+    await CommentModel.deleteMany({ product: req.params.id });
+    await ReportModel.deleteMany({
+      targetType: "product",
+      targetId: req.params.id,
+    });
 
     await product.deleteOne();
+
     res.json({ msg: "تم حذف المنتج بنجاح" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ msg: "خطأ في حذف المنتج", error: error });
   }
-}
+};

@@ -15,6 +15,7 @@ const { updatedProduct } = require("../controllers/product/updateProduct.js");
 const { deleteProduct } = require("../controllers/product/deleteProduct.js");
 const { publishProduct } = require("../controllers/product/publishProduct.js");
 const { getProductById } = require("../controllers/product/getProductById.js");
+const { getSimilarProducts } = require("../controllers/product/getSimilarProducts.js");
 
 router.post("/uploadURL", verifyToken, getUploadUrlProduct);
 
@@ -23,6 +24,9 @@ router.post("/", verifyToken, publishProduct);
 
 // Fetch products with filters, pagination, and text search
 router.get("/", getProducts);
+
+router.get("/getSimilarProducts/:id", getSimilarProducts);
+
 
 router.get("/:id", getProductById);
 
