@@ -19,14 +19,14 @@ const {
 const { fillRole } = require("../middlewares/admin/fillRole.js");
 const { fillUsername } = require("../middlewares/admin/fillUsername.js");
 
-router.delete("/replies/", verifyToken, fillRole,deleteReply);
+router.delete("/replies/", verifyToken, fillRole, deleteReply);
 //comments
 router.post("/", verifyNotBlocked, addComment);
-router.delete("/:commentId", verifyToken,fillRole, deleteComment);
+router.delete("/:commentId", verifyToken, fillRole, deleteComment);
 router.get("/", checkTokenExists, fillRole, getCommentsByProduct);
 
 //replies
-router.get("/:commentId/replies", getRepliesByComment);
-router.post("/replies", verifyNotBlocked,fillUsername, addReplyToComment);
+router.get("/:commentId/replies", checkTokenExists, getRepliesByComment);
+router.post("/replies", verifyNotBlocked, fillUsername, addReplyToComment);
 
 module.exports = router;

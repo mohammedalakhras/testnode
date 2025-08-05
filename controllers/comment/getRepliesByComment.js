@@ -1,15 +1,6 @@
-const { model } = require("mongoose");
+// getRepliesByComment.js
 const { CommentModel } = require("../../models/Comment.js");
 const hidePhoneIfNotAllowed = require("./hidePhoneIfNotAllowed.js");
-
-
-
-
-
-
-
-
-
 
 /**
  * جلب الردود لتعليق معيّن مع Pagination
@@ -21,14 +12,14 @@ async function getRepliesByComment(req, res) {
   try {
     const viewerId = req.user ? req.user.id : null;
     const { commentId } = req.params;
-    const { page = 1, limit = 5 } = req.query;
+    const { page = 0, limit = 5 } = req.query;
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
 
-    // 1) ابحث عن التعليق كاملًا (حتى نستطيع جلب كل الردود)
+    // 1) ابحث عن التعليق كاملًا
     const comment = await CommentModel.findById(commentId)
-      .populate("user", "_id") // هذا صاحب التعليق الأصلي (CommentOwner)
-      .populate("replies.user", "username fullName phone _id")
+      .populate("user", "_id") // صاحب التعليق الأصلي
+      .populate("replies.user", "_id username fullName")
       .populate({
         path: "product",
         select: "owner",
@@ -36,36 +27,36 @@ async function getRepliesByComment(req, res) {
       }) // حتى نحصل على owner المنتج
       .lean();
 
-    if (!comment) return res.status(404).json({ message: "التعليق غير موجود." });
+    if (!comment)
+      return res.status(404).json({ message: "التعليق غير موجود." });
 
     const repliesArray = comment.replies || [];
     const totalReplies = repliesArray.length;
-    const productOwnerId = comment.product.owner._id.toString();
+    const productOwnerId = comment.product.owner;
     const commentOwnerId = comment.user._id.toString(); // صاحب التعليق الأصلي
 
-    // 2) ترتيب الردود تصاعدي (يمكنك عكسه إن أردت الأحدث أولاً)
+    // 2) ترتيب الردود تصاعدي
     repliesArray.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-    // 3) نحسب البدء والنهاية
-    const start = (pageNum - 1) * limitNum;
+    // 3 + 4) Pagination
+    const start = pageNum * limitNum;
     const end = start + limitNum;
-
-    // 4) نأخذ الشريحة المناسبة من المصفوفة
     const paginatedReplies = repliesArray.slice(start, end);
 
-    // 5) نُجهِّز الردود وفق إخفاء الهاتف
+    // 5) تجهيز الردود مع إخفاء الهاتف في المحتوى
     const processedReplies = paginatedReplies.map((r) => {
-      const replyUserObj = hidePhoneIfNotAllowed(
-        r.user,
+      const maskedContent = hidePhoneIfNotAllowed(
+        r.content,
         viewerId,
         productOwnerId,
+        r.user._id.toString(),
         commentOwnerId
       );
       return {
         _id: r._id,
-        content: r.content,
+        content: maskedContent,
         createdAt: r.createdAt,
-        user: replyUserObj,
+        user: r.user,
       };
     });
 
@@ -81,4 +72,4 @@ async function getRepliesByComment(req, res) {
   }
 }
 
-module.exports=getRepliesByComment;
+module.exports = getRepliesByComment;
