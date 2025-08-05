@@ -1,6 +1,6 @@
 const { model } = require("mongoose");
 const { CommentModel } = require("../../models/Comment.js");
-const { default: hidePhoneIfNotAllowed } = require("./hidePhoneIfNotAllowed.js");
+const hidePhoneIfNotAllowed = require("./hidePhoneIfNotAllowed.js");
 
 
 

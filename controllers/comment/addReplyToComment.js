@@ -42,6 +42,7 @@ async function addReplyToComment(req, res) {
       createdAt: Date.now(),
     });
     await comment.save();
+    const reply=comment.replies[comment.replies.length-1];
 
     // const tokensToNotify = new Set();
     const userIDs = new Set();
@@ -70,7 +71,7 @@ async function addReplyToComment(req, res) {
 
     // }
 
-    return res.status(201).json({ message: "تم إضافة الرد بنجاح." });
+    return res.status(201).json({ message: "تم إضافة الرد بنجاح.",reply });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "حدث خطأ في السيرفر." });

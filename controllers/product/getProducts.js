@@ -132,7 +132,7 @@ exports.getProducts = async (req, res) => {
     // const products = await query.exec();
     const products = await ProductModel.find(queryFilter)
       .select(
-        "title description price category owner location market condition status images tags expiresAt"
+        "title description price category owner location market condition status images tags expiresAt cret"
       )
       .populate("owner", "username photo rate")
       .populate("location.location", "name")
