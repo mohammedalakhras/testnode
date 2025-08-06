@@ -20,7 +20,15 @@ exports.getProductById = async (req, res) => {
       { new: true }
     )
       .populate("owner", "username photo rate bio")
-      .populate("location.location", "name")
+      // .populate("location.location", "name")
+      .populate({
+        path: "location.location",
+        select: "name ancestors",
+        populate: {
+          path: "ancestors",
+          select: "name",
+        },
+      })
       .populate("category", "name")
       .lean();
 

@@ -16,6 +16,7 @@ const { deleteProduct } = require("../controllers/product/deleteProduct.js");
 const { publishProduct } = require("../controllers/product/publishProduct.js");
 const { getProductById } = require("../controllers/product/getProductById.js");
 const { getSimilarProducts } = require("../controllers/product/getSimilarProducts.js");
+const { getMaxPrices } = require("../controllers/product/getMaxPrices.js");
 
 router.post("/uploadURL", verifyToken, getUploadUrlProduct);
 
@@ -26,6 +27,7 @@ router.post("/", verifyToken, publishProduct);
 router.get("/", getProducts);
 
 router.get("/getSimilarProducts/:id", getSimilarProducts);
+router.get("/maxPrices", getMaxPrices);
 
 
 router.get("/:id", getProductById);

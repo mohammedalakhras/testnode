@@ -1,4 +1,14 @@
-reports 
-verification 
-get products for followers
-filter products based on [bazar,market] (add property);
+get min max price.                                                                  DONE
+get sub location of list.                                                           DONE
+get sub categories of list.                                                         DONE
+get allowed condtions categories of list.                                           DONE
+add createdAt to getProducts.                                                       DONE
+add some fileds (status) to getProducts.                                            DONE
+add location as full location (parent and childs).                                  DONE
+add photo to user.
+return bio and number of products for user.
+get my products with pagination.
+re-post the product with edit of date of S3 Object.
+add photo to categories.
+complete sections
+add upload image url for users.
