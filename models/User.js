@@ -325,6 +325,7 @@ function validateProfileUpdate(data) {
     phoneVisible: joi.boolean(),
     password: joi.string().min(6).max(128),
     email: joi.string().email().min(5).max(100),
+    location:joi.string()
   });
   return updateProfileSchema.validate(data);
 }

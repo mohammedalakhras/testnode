@@ -33,6 +33,7 @@ const {
   confirmNewEmail,
 } = require("../controllers/auth/update/confirmNewEmail.js");
 const { sendNotification } = require("../src/lib/notificationService.js");
+const { getUserById } = require("../controllers/user/getUserDataById.js");
 
 /**
  * @description Sign up by [email,username,fullname,password]
@@ -102,6 +103,16 @@ router.post("/resetPassword", resetPassword);
  * @access private
  */
 router.get("/me", verifyToken, me);
+
+
+
+/**
+ * @description Get user data
+ * @route /api/users/data/:id
+ * @method GET
+ * @access private
+ */
+router.get("/data/:id", getUserById);
 
 /**
  * @description Validate token

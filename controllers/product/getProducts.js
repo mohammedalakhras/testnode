@@ -1,6 +1,7 @@
 const { default: mongoose } = require("mongoose");
 const { LocationModel } = require("../../models/Location.js");
 const { ProductModel } = require("../../models/Product.js");
+const { CategoryModel } = require("../../models/Category.js");
 const { getMediaUrls } = require("../auth/aws/products/getProductMediaUrls.js");
 
 exports.getProducts = async (req, res) => {
@@ -27,7 +28,34 @@ exports.getProducts = async (req, res) => {
       expiresAt: { $gt: new Date() },
     };
 
-    if (category) filter.category = new mongoose.Types.ObjectId(category);
+    //old
+    // if (category) filter.category = new mongoose.Types.ObjectId(category);
+
+    if (category) {
+      const catArray = Array.isArray(category)
+        ? category
+        : category.split(",").map((s) => s.trim());
+
+      const allCatIds = [];
+
+      for (const cat of catArray) {
+        if (!cat) continue;
+        const catId = new mongoose.Types.ObjectId(cat);
+        allCatIds.push(catId);
+
+        const descendants = await CategoryModel.find({ ancestors: catId })
+          .select("_id")
+          .lean();
+
+        descendants.forEach((d) => allCatIds.push(d._id));
+      }
+
+      const uniqueCatIds = [
+        ...new Set(allCatIds.map((id) => id.toString())),
+      ].map((s) => new mongoose.Types.ObjectId(s));
+
+      filter.category = { $in: uniqueCatIds };
+    }
 
     if (condition) {
       const conditions = Array.isArray(condition)
@@ -152,7 +180,17 @@ exports.getProducts = async (req, res) => {
       products.map(async (e) => {
         const img = e.images[0].low.replace("products/", "");
 
-        return { ...e, images: [await getMediaUrls(img)] };
+        let topAncestor = null;
+        if (e.location?.location?.ancestors?.length) {
+          // إذا كانت القائمة من الأدنى للأعلى، نأخذ آخر عنصر
+          topAncestor = e.location.location.ancestors[0]; // أو [length - 1] إذا كان العكس
+        }
+        return {
+          ...e,
+          images: [await getMediaUrls(img)],
+
+          location: topAncestor ? topAncestor : null,
+        };
       })
     );
 
