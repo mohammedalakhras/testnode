@@ -56,7 +56,7 @@ async function getRatings(req, res) {
       targetUser: userOid,
       type,
     })
-      .select("_id targetUser author type text replies")
+      .select("_id targetUser author type text replies createdAt")
       .populate("author", "fullName username photo")
       .populate("replies.author", "fullName username photo")
       .sort({ createdAt: -1 })

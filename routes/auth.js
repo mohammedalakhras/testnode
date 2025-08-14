@@ -34,6 +34,7 @@ const {
 } = require("../controllers/auth/update/confirmNewEmail.js");
 const { sendNotification } = require("../src/lib/notificationService.js");
 const { getUserById } = require("../controllers/user/getUserDataById.js");
+const { getUploadUrlUser } = require("../controllers/auth/aws/users/getUploadUrlUser.js");
 
 /**
  * @description Sign up by [email,username,fullname,password]
@@ -42,7 +43,19 @@ const { getUserById } = require("../controllers/user/getUserDataById.js");
  * @access public
  */
 
+
+
 router.post("/signup", signup);
+/**
+ * @description GET Upload URL
+ * @route /api/users/uploadURL
+ * @method POST
+ * @access public
+ */
+
+
+
+router.post("/uploadUrl", getUploadUrlUser);
 
 /**
  * @description verify email using rercived code

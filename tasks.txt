@@ -5,9 +5,9 @@ get allowed condtions categories of list.                                       
 add createdAt to getProducts.                                                       DONE
 add some fileds (status) to getProducts.                                            DONE
 add location as full location (parent and childs).                                  DONE
+return bio and number of products for user.                                         DONE
 add photo to user.
-return bio and number of products for user.
-get my products with pagination.
+get my products with pagination.                                                    DONE
 re-post the product with edit of date of S3 Object.
 add photo to categories.
 complete sections
