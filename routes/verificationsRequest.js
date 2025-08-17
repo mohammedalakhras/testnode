@@ -12,7 +12,7 @@ const {verifyNotBlocked} = require("../middlewares/token/verifyNotBlocked.js");
 const {fillRole} = require("../middlewares/admin/fillRole.js");
 
 // user
-router.get("/cert/upload-url", verifyNotBlocked, getUploadUrlVeriRequest);
+router.post("/cert/upload-url", verifyNotBlocked, getUploadUrlVeriRequest);
 router.post("/cert", verifyNotBlocked, addRequest);
 router.get("/cert", verifyNotBlocked, getMyRequests);
 

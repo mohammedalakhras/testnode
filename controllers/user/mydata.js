@@ -1,6 +1,9 @@
 const { UserModel } = require("../../models/User.js");
 const { ProductModel } = require("../../models/Product.js");
 const { Follow } = require("../../models/Follow.js");
+const {
+  replaceUserKeysWithUrls,
+} = require("../../services/replaceUsersKeysWithUrls.js");
 
 exports.me = async (req, res) => {
   try {
@@ -14,6 +17,9 @@ exports.me = async (req, res) => {
       });
     }
 
+    if (user.photo) user.photo = await replaceUserKeysWithUrls(user.photo);
+    if (user.cover) user.cover = await replaceUserKeysWithUrls(user.cover);
+
     user.blockedUsers = user.blockedUsers.length;
 
     if (!user.bio) {
@@ -23,13 +29,13 @@ exports.me = async (req, res) => {
       owner: req.user.id,
       // status: "Approved",
       // isSold: false,
-      expiresAt: { $gt: new Date() }, 
+      expiresAt: { $gt: new Date() },
     });
 
-    const followersCount = await Follow.countDocuments({ followee: id });
+    const followersCount = await Follow.countDocuments({ followee: req.user.id });
 
     // عدد الذين يتابعهم (followings)
-    const followingsCount = await Follow.countDocuments({ follower: id });
+    const followingsCount = await Follow.countDocuments({ follower: req.user.id });
 
     res.status(200).json({
       success: true,

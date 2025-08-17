@@ -74,9 +74,9 @@ const ProductSchema = new mongoose.Schema(
       default: false,
       required: true,
     },
-    market:{
-      type:Boolean,
-      default:false
+    market: {
+      type: Boolean,
+      default: false,
     },
     status: {
       type: String,
@@ -145,6 +145,12 @@ const ProductSchema = new mongoose.Schema(
       //after 30 day
       default: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
+
+    //new
+    renewalReminderSentAt: { type: Date }, // متى أرسلنا تذكير التجديد (optional)
+    mediaRefreshedAt: { type: Date }, // متى عملنا refresh (copy) للوسائط آخر مرة
+    mediaDeleted: { type: Boolean, default: false }, // هل حُذفت وسائط S3 لهذا المنتج؟
+
     // isApproved: {
     //   type: Boolean,
     //   default: false,
@@ -214,7 +220,7 @@ async function validateProduct(obj) {
         details: joi.string().min(5).max(50).optional(),
       })
       .required(),
-     phone: joi
+    phone: joi
       .string()
       .pattern(/^\+?[0-9\- ]+$/)
       .min(8)
@@ -269,7 +275,7 @@ async function validateUpdateProduct(obj, currentCategory) {
         currency: joi.string().valid("USD", "SYP").required(),
       })
       .optional(),
-       phone: joi
+    phone: joi
       .string()
       .pattern(/^\+?[0-9\- ]+$/)
       .min(8)

@@ -3,6 +3,9 @@ const { UserModel } = require("../../models/User.js");
 const { ProductModel } = require("../../models/Product.js");
 const { Follow } = require("../../models/Follow.js");
 const { default: mongoose } = require("mongoose");
+const {
+  replaceUserKeysWithUrls,
+} = require("../../services/replaceUsersKeysWithUrls.js");
 
 exports.getUserById = async (req, res) => {
   try {
@@ -19,6 +22,9 @@ exports.getUserById = async (req, res) => {
       )
       .lean();
 
+    if (user.photo) user.photo = await replaceUserKeysWithUrls(user.photo);
+    if (user.cover) user.cover = await replaceUserKeysWithUrls(user.cover);
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -28,8 +34,8 @@ exports.getUserById = async (req, res) => {
     if (user.phoneVisible == false) {
       delete user.phone;
     }
-    if(!user.bio){
-        user.bio=null;
+    if (!user.bio) {
+      user.bio = null;
     }
 
     const productsCount = await ProductModel.countDocuments({
@@ -38,7 +44,7 @@ exports.getUserById = async (req, res) => {
       //   isSold: false,
       expiresAt: { $gt: new Date() },
     });
-      // عدد المتابعين (followers)
+    // عدد المتابعين (followers)
     const followersCount = await Follow.countDocuments({ followee: id });
 
     // عدد الذين يتابعهم (followings)
@@ -48,8 +54,8 @@ exports.getUserById = async (req, res) => {
       data: {
         ...user,
         productsCount,
-        followers:followersCount,
-        following:followingsCount
+        followers: followersCount,
+        following: followingsCount,
       },
     });
   } catch (error) {
