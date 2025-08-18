@@ -6,6 +6,9 @@ const { sendNotification } = require("../../src/lib/notificationService.js");
 const {
   createAndSendNotification,
 } = require("../../services/notificationService.js");
+const {
+  replaceUserKeysWithUrls,
+} = require("../../services/replaceUsersKeysWithUrls.js");
 
 async function addComment(req, res) {
   try {
@@ -32,13 +35,16 @@ async function addComment(req, res) {
       replies: [],
     });
     await comment.save();
-
+    let data;
     //Send Notification
     const productOwnerId = product.owner._id.toString();
     if (productOwnerId !== userId.toString()) {
       const userData = await UserModel.findById(req.user.id)
-        .select("username")
+        .select("username photo fullname")
         .lean();
+      if (userData.photo)
+        userData.photo = await replaceUserKeysWithUrls(userData.photo);
+      data = userData;
       // const tokens = product.owner.fcmTokens || [];
       // if (Array.isArray(tokens) && tokens.length > 0) {
       const payload = {
@@ -56,7 +62,7 @@ async function addComment(req, res) {
 
     return res
       .status(201)
-      .json({ msg: "تم نشر التعليق بنجاح.", commentId: comment._id });
+      .json({ msg: "تم نشر التعليق بنجاح.", commentId: comment._id, data });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ msg: "حدث خطأ في السيرفر." });

@@ -14,4 +14,4 @@ complete sections
 add upload image url for users.
 check admin screens & APIs.
 send notification after 15 day form publish product.
- 
+handle blocked (don't see products , don't chat,..... think more.. )                DONE
