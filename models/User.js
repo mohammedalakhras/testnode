@@ -325,9 +325,35 @@ function validateProfileUpdate(data) {
     phoneVisible: joi.boolean(),
     password: joi.string().min(6).max(128),
     email: joi.string().email().min(5).max(100),
-    location:joi.string()
+    location: joi.string(),
+    photo: joi
+      .alternatives()
+      .try(
+        joi
+          .string()
+          .min(1)
+          .pattern(/^[^\s]{1,1024}$/),
+        joi.valid(null),
+        joi.string().allow("")
+      )
+      .messages({
+        "string.pattern.base": "photo يجب أن يكون مفتاح S3 صالح (بدون مسافات).",
+      }),
+    cover: joi
+      .alternatives()
+      .try(
+        joi
+          .string()
+          .min(1)
+          .pattern(/^[^\s]{1,1024}$/),
+        joi.valid(null),
+        joi.string().allow("")
+      )
+      .messages({
+        "string.pattern.base": "cover يجب أن يكون مفتاح S3 صالح (بدون مسافات).",
+      }),
   });
-  return updateProfileSchema.validate(data);
+  return updateProfileSchema.validate(data, { abortEarly: false });
 }
 
 const UserModel = new mongoose.model("User", UserSchema);
@@ -368,6 +394,24 @@ function validateUpdateSection(obj) {
 
   return schema.validate(obj, { abortEarly: false });
 }
+
+const objectIdValidator = (value, helpers) => {
+  if (!mongoose.Types.ObjectId.isValid(value)) {
+    return helpers.error("any.invalid");
+  }
+  return value;
+};
+
+function validateBlockPayload(body) {
+  const schema = joi.object({
+    userId: joi
+      .string()
+      .custom(objectIdValidator, "ObjectId validation")
+      .required(),
+  });
+  return schema.validate(body);
+}
+
 module.exports = {
   UserModel,
   validateLoginByUsername,
@@ -375,4 +419,5 @@ module.exports = {
   validateProfileUpdate,
   validateSection,
   validateUpdateSection,
+  validateBlockPayload,
 };

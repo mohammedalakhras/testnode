@@ -5,6 +5,8 @@ const {
   sendVerificationEmail,
 } = require("../../../src/lib/emailVerification.js");
 
+const s3 = require("../../../src/config/aws.js");
+
 exports.updateProfile = async (req, res) => {
   try {
     // 1. Validate input (only allowed fields)
@@ -227,7 +229,55 @@ exports.updateProfile = async (req, res) => {
       user.phoneVisible = value.phoneVisible;
     }
 
-    // 9. Finally save any changes
+    // 9. Change photo or cover :
+    // ---- NEW: Handle photo / cover (S3 keys) ----
+    // helper to delete old S3 object if present and update field
+    async function handleKeyUpdate(fieldName, newKey) {
+      const oldKey = user[fieldName];
+
+      // if newKey is undefined => field not provided in request => do nothing
+      if (typeof newKey === "undefined") return;
+
+      // if client asked to clear the image (null or empty string)
+      if (newKey === null || newKey === "") {
+        if (oldKey) {
+          try {
+            await s3
+              .deleteObject({ Bucket: process.env.AWS_S3_BUCKET, Key: oldKey })
+              .promise();
+          } catch (err) {
+            console.warn(
+              `Failed to delete old S3 object (${oldKey}):`,
+              err.message || err
+            );
+            // لا نفشل التحديث بسبب مشكلة في الحذف
+          }
+        }
+        user[fieldName] = null;
+        return;
+      }
+
+      // new key provided (non-empty string)
+      if (oldKey && oldKey !== newKey) {
+        try {
+          await s3
+            .deleteObject({ Bucket: process.env.AWS_S3_BUCKET, Key: oldKey })
+            .promise();
+        } catch (err) {
+          console.warn(
+            `Failed to delete old S3 object (${oldKey}):`,
+            err.message || err
+          );
+          // نستمر حتى لو فشل الحذف
+        }
+      }
+      user[fieldName] = newKey;
+    }
+
+    await handleKeyUpdate("photo", value.photo);
+    await handleKeyUpdate("cover", value.cover);
+
+    // 10. Finally save any changes
     await user.save();
 
     res.json({
@@ -242,6 +292,8 @@ exports.updateProfile = async (req, res) => {
         pendingEmail: user.pendingEmail, // the new one, awaiting verification
         phone: user.phone,
         phoneVisible: user.phoneVisible,
+        photo: user.photo,
+        cover: user.cover,
       },
     });
   } catch (err) {

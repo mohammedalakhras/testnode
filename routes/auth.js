@@ -34,7 +34,14 @@ const {
 } = require("../controllers/auth/update/confirmNewEmail.js");
 const { sendNotification } = require("../src/lib/notificationService.js");
 const { getUserById } = require("../controllers/user/getUserDataById.js");
-const { getUploadUrlUser } = require("../controllers/auth/aws/users/getUploadUrlUser.js");
+const {
+  getUploadUrlUser,
+} = require("../controllers/auth/aws/users/getUploadUrlUser.js");
+const { blockUser, unblockUser } = require("../controllers/user/blockUser.js");
+
+const {
+  verifyNotBlocked,
+} = require("../middlewares/token/verifyNotBlocked.js");
 
 /**
  * @description Sign up by [email,username,fullname,password]
@@ -43,8 +50,6 @@ const { getUploadUrlUser } = require("../controllers/auth/aws/users/getUploadUrl
  * @access public
  */
 
-
-
 router.post("/signup", signup);
 /**
  * @description GET Upload URL
@@ -52,8 +57,6 @@ router.post("/signup", signup);
  * @method POST
  * @access public
  */
-
-
 
 router.post("/uploadUrl", getUploadUrlUser);
 
@@ -117,8 +120,6 @@ router.post("/resetPassword", resetPassword);
  */
 router.get("/me", verifyToken, me);
 
-
-
 /**
  * @description Get user data
  * @route /api/users/data/:id
@@ -155,6 +156,24 @@ router.post("/update", verifyToken, updateProfile);
  * @access private
  */
 router.post("/confirmNewEmail", verifyToken, confirmNewEmail);
+
+/**
+ * @description Block a user (adds to blockedUsers)
+ * @route /api/users/block
+ * @method POST
+ * @access private
+ * body: { userId }
+ */
+router.post("/block", verifyNotBlocked, blockUser);
+
+/**
+ * @description Unblock a user (removes from blockedUsers)
+ * @route /api/users/unblock
+ * @method POST
+ * @access private
+ * body: { userId }
+ */
+router.post("/unblock", verifyNotBlocked, unblockUser);
 
 /**
  * @description Send Notification to Specific Device By FCM Token

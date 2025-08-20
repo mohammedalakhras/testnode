@@ -14,7 +14,7 @@ const {verifyNotBlocked} = require("../middlewares/token/verifyNotBlocked.js");
 const { fillRole } = require("../middlewares/admin/fillRole.js");
 
 //user reports routes
-router.get("/users/uploadURL", verifyNotBlocked, getUploadUrlReport);
+router.post("/users/uploadURL", verifyNotBlocked, getUploadUrlReport);
 router.post("/users", verifyNotBlocked, addReport);
 router.get("/users", verifyNotBlocked, getReports);
 router.delete("/users/:reportId", verifyNotBlocked,fillRole, deleteReport);
