@@ -37,11 +37,20 @@ const { getUserById } = require("../controllers/user/getUserDataById.js");
 const {
   getUploadUrlUser,
 } = require("../controllers/auth/aws/users/getUploadUrlUser.js");
-const { blockUser, unblockUser } = require("../controllers/user/blockUser.js");
+const {
+  blockUser,
+  unblockUser,
+  getBlockedUsers,
+} = require("../controllers/user/blockUser.js");
 
 const {
   verifyNotBlocked,
 } = require("../middlewares/token/verifyNotBlocked.js");
+const { fillRole } = require("../middlewares/admin/fillRole.js");
+const {
+  incrementAlert,
+  setUserState,
+} = require("../controllers/user/admin/userStateController.js");
 
 /**
  * @description Sign up by [email,username,fullname,password]
@@ -165,6 +174,13 @@ router.post("/confirmNewEmail", verifyToken, confirmNewEmail);
  * body: { userId }
  */
 router.post("/block", verifyNotBlocked, blockUser);
+/**
+ * @description GET blocked users by me.
+ * @route /api/users/blocked
+ * @method GET
+ * @access private
+ */
+router.get("/blocked", verifyToken, getBlockedUsers);
 
 /**
  * @description Unblock a user (removes from blockedUsers)
@@ -174,6 +190,24 @@ router.post("/block", verifyNotBlocked, blockUser);
  * body: { userId }
  */
 router.post("/unblock", verifyNotBlocked, unblockUser);
+
+//admin
+/**
+ * @description increment Alert for user by admin
+ * @route /api/users/admin/:id/alert
+ * @method POST
+ * @access private
+ */
+router.post("/admin/:id/alert", verifyToken, fillRole, incrementAlert);
+
+/**
+ * @description setUserState
+ * @route /api/users/admin/:id/state
+ * @method PATCH
+ * @access private
+ * Body: { state: "active"|"semi-blocked"|"blocked" }
+ */
+router.patch("/admin/:id/state", verifyToken, fillRole, setUserState);
 
 /**
  * @description Send Notification to Specific Device By FCM Token

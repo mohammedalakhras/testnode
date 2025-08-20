@@ -1,6 +1,9 @@
 // controllers/user/blockUser.js
 const mongoose = require("mongoose");
 const { UserModel, validateBlockPayload } = require("../../models/User.js");
+const {
+  replaceUserKeysWithUrls,
+} = require("../../services/replaceUsersKeysWithUrls.js");
 
 const MAX_BLOCKED_USERS = 25;
 
@@ -144,5 +147,47 @@ exports.unblockUser = async (req, res) => {
     return res
       .status(500)
       .json({ success: false, msg: err.message || String(err) });
+  }
+};
+
+/**
+ * GET /api/users/blocked
+ * access: private
+ */
+
+exports.getBlockedUsers = async (req, res) => {
+  try {
+    const meId = req.user.id;
+
+    const me = await UserModel.findById(meId, "blockedUsers").lean();
+    if (!me) {
+      return res
+        .status(404)
+        .json({ success: false, msg: "المستخدم غير موجود." });
+    }
+
+    if (!me.blockedUsers || me.blockedUsers.length === 0) {
+      return res.status(200).json({ success: true, blocked: [] });
+    }
+
+    let blockedUsers = await UserModel.find(
+      { _id: { $in: me.blockedUsers } },
+      "username fullname photo"
+    ).lean();
+
+    for (let u of blockedUsers) {
+      if (u.photo) {
+        u.photo = await replaceUserKeysWithUrls(u.photo);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      blocked: blockedUsers,
+      count: blockedUsers.length,
+    });
+  } catch (err) {
+    console.error("getBlockedUsers error:", err);
+    return res.status(500).json({ success: false, msg: err.message || err });
   }
 };

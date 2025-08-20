@@ -412,6 +412,12 @@ function validateBlockPayload(body) {
   return schema.validate(body);
 }
 
+function validateSetStatePayload(body) {
+  const schema = joi.object({
+    state: joi.string().valid("active", "semi-blocked", "blocked").required(),
+  });
+  return schema.validate(body, { abortEarly: false });
+}
 module.exports = {
   UserModel,
   validateLoginByUsername,
@@ -420,4 +426,6 @@ module.exports = {
   validateSection,
   validateUpdateSection,
   validateBlockPayload,
+  validateSetStatePayload,
+  objectIdValidator,
 };

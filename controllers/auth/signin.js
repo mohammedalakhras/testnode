@@ -51,7 +51,12 @@ exports.signin = async (req, res) => {
         { $addToSet: { fcmTokens: fcmToken } }
       );
     }
-    
+    if (user.state == "blocked") {
+      return res.status(403).json({
+        success: false,
+        msg: "فشل تسجيل الدخول\n الحساب محظور.",
+      });
+    }
     const token = jwt.sign(
       {
         id: user._id,
@@ -63,7 +68,7 @@ exports.signin = async (req, res) => {
     );
 
     const { password: _, ...userData } = user._doc;
- 
+
     return res.status(200).json({
       success: true,
       msg: "تسجيل الدخول بنجاح",
