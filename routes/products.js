@@ -19,6 +19,7 @@ const { getSimilarProducts } = require("../controllers/product/getSimilarProduct
 const { getMaxPrices } = require("../controllers/product/getMaxPrices.js");
 const { getFolloweesProducts } = require("../controllers/product/getProductsFromFollowings.js");
 const { getMyProducts } = require("../controllers/product/getMyProducts.js");
+const { getUserProducts } = require("../controllers/product/getUserProducts.js");
 
 router.post("/uploadURL", verifyToken, getUploadUrlProduct);
 
@@ -30,6 +31,7 @@ router.get("/", getProducts);
 
 router.get("/getSimilarProducts/:id", getSimilarProducts);
 router.get("/maxPrices", getMaxPrices);
+router.get("/userProducts/:userId", getUserProducts);
 
 router.get("/followings", verifyToken, getFolloweesProducts);
 router.get("/myProducts", verifyToken, getMyProducts);

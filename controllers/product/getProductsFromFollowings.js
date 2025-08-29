@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 const { Follow } = require("../../models/Follow.js");
 const { ProductModel } = require("../../models/Product.js");
 const { getMediaUrls } = require("../auth/aws/products/getProductMediaUrls.js");
+const { replaceUserKeysWithUrls } = require("../../services/replaceUsersKeysWithUrls.js");
+
 
 exports.getFolloweesProducts = async (req, res) => {
   try {
@@ -61,19 +63,23 @@ exports.getFolloweesProducts = async (req, res) => {
     const urls = keys.length ? await getMediaUrls(keys) : [];
 
     // 5) إلحاق الـ image url لكل منتج (أو null إن لم توجد)
-    const updatedProducts = products.map((p, idx) => {
-      // حاول إيجاد رابط مطابق حسب index في قائمة keys
-      // نستخدم نفس الترتيب: keys بني على ترتيب products مع فلترة null
-      // لذا نحتاج حساب indexToUse
-      let image = null;
-      const rawKey = p.images?.[0]?.low?.replace?.("products/", "");
-      if (rawKey) {
-        // إيجاد موضع rawKey في keys
-        const pos = keys.indexOf(rawKey);
-        image = pos >= 0 ? urls[pos] : null;
-      }
-      return { ...p, image: image ? image : null };
-    });
+  const updatedProducts = await Promise.all(
+      products.map(async (p) => {
+        let image = null;
+        const rawKey = p.images?.[0]?.low?.replace?.("products/", "");
+        if (rawKey) {
+          const pos = keys.indexOf(rawKey);
+          image = pos >= 0 ? urls[pos] : null;
+        }
+
+        // استبدال صورة المستخدم
+        if (p.owner?.photo) {
+          p.owner.photo = await replaceUserKeysWithUrls(p.owner.photo);
+        }
+
+        return { ...p, image };
+      })
+    );
 
     return res.json({
       data: updatedProducts,

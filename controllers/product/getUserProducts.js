@@ -1,20 +1,27 @@
+// controllers/products/getUserProducts.js
 const mongoose = require("mongoose");
 const { ProductModel } = require("../../models/Product.js");
 const { getMediaUrls } = require("../auth/aws/products/getProductMediaUrls.js");
-const { replaceUserKeysWithUrls } = require("../../services/replaceUsersKeysWithUrls.js");
+const {
+  replaceUserKeysWithUrls,
+} = require("../../services/replaceUsersKeysWithUrls.js");
 
-exports.getMyProducts = async (req, res) => {
+exports.getUserProducts = async (req, res) => {
   try {
-    const viewerId = req.user?.id;
-    if (!viewerId) {
-      return res.status(401).json({ msg: "Unauthorized" });
+    const { userId } = req.params; // نأخذ الـ userId من params (مثلاً /products/user/:userId)
+    if (!userId) {
+      return res.status(400).json({ msg: "userId is required" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ msg: "userId is not valid" });
     }
 
     const page = Number(req.query.page ?? 0);
     const limit = Number(req.query.limit ?? 8);
     const skip = page * limit;
 
-    const filter = { owner: new mongoose.Types.ObjectId(viewerId) };
+    const filter = { owner: new mongoose.Types.ObjectId(userId) };
 
     const total = await ProductModel.countDocuments(filter);
 
@@ -35,17 +42,16 @@ exports.getMyProducts = async (req, res) => {
       .lean()
       .exec();
 
-    // تحضير مفاتيح الصور (الصورة الأولى low لكل منتج)
+    // تجهيز مفاتيح الصور (الصورة الأولى low لكل منتج)
     const keys = products
       .map((p) => p.images?.[0]?.low?.replace?.("products/", ""))
       .filter(Boolean);
 
     const urls = keys.length ? await getMediaUrls(keys) : [];
 
-    // إلحاق رابط الصورة (image) لكل منتج أو null
+    // إلحاق رابط الصورة الأولى
     const updatedProducts = await Promise.all(
       products.map(async (p) => {
-        // صورة المنتج
         const rawKey = p.images?.[0]?.low?.replace?.("products/", "") || null;
         let image = null;
         if (rawKey) {
@@ -53,14 +59,16 @@ exports.getMyProducts = async (req, res) => {
           image = pos >= 0 ? urls[pos] : null;
         }
 
-        // صورة المالك
+        // ✅ استبدال صورة المستخدم
         if (p.owner?.photo) {
           p.owner.photo = await replaceUserKeysWithUrls(p.owner.photo);
         }
 
-        return { ...p, image: image ?? null };
+        p.image = image ?? null;
+        return p;
       })
     );
+
     return res.json({
       data: updatedProducts,
       pagination: {
@@ -71,7 +79,7 @@ exports.getMyProducts = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("Error in getMyProducts:", err);
-    return res.status(500).json({ msg: "خطأ في جلب منتجات المستخدم." });
+    console.error("Error in getUserProducts:", err);
+    return res.status(500).json({ msg: "خطأ في جلب منتجات المستخدم المحدد." });
   }
 };

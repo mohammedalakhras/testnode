@@ -1,6 +1,9 @@
 const { default: mongoose } = require("mongoose");
 const { ProductModel } = require("../../models/Product.js");
 const { getMediaUrls } = require("../auth/aws/products/getProductMediaUrls.js");
+const {
+  replaceUserKeysWithUrls,
+} = require("../../services/replaceUsersKeysWithUrls.js");
 
 exports.getProductById = async (req, res) => {
   try {
@@ -48,6 +51,9 @@ exports.getProductById = async (req, res) => {
     const medUrls = await getMediaUrls(medKeys);
     const vidmedUrls = await getMediaUrls(vidmedKeys);
 
+    if (product.owner?.photo) {
+      product.owner.photo = await replaceUserKeysWithUrls(product.owner.photo);
+    }
     // Attach URLs to product
     const productWithMedImages = {
       ...product,

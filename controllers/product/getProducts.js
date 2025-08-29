@@ -3,6 +3,9 @@ const { LocationModel } = require("../../models/Location.js");
 const { ProductModel } = require("../../models/Product.js");
 const { CategoryModel } = require("../../models/Category.js");
 const { getMediaUrls } = require("../auth/aws/products/getProductMediaUrls.js");
+const {
+  replaceUserKeysWithUrls,
+} = require("../../services/replaceUsersKeysWithUrls.js");
 
 exports.getProducts = async (req, res) => {
   try {
@@ -184,6 +187,9 @@ exports.getProducts = async (req, res) => {
         if (e.location?.location?.ancestors?.length) {
           // إذا كانت القائمة من الأدنى للأعلى، نأخذ آخر عنصر
           topAncestor = e.location.location.ancestors[0]; // أو [length - 1] إذا كان العكس
+        }
+        if (e.owner?.photo) {
+          e.owner.photo = await replaceUserKeysWithUrls(e.owner.photo);
         }
         return {
           ...e,

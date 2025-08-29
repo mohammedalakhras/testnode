@@ -1,6 +1,9 @@
 const mongoose = require("mongoose");
 const { ProductModel } = require("../../models/Product.js");
 const { getMediaUrls } = require("../auth/aws/products/getProductMediaUrls.js");
+const {
+  replaceUserKeysWithUrls,
+} = require("../../services/replaceUsersKeysWithUrls.js");
 
 exports.getSimilarProducts = async (req, res) => {
   try {
@@ -74,7 +77,7 @@ exports.getSimilarProducts = async (req, res) => {
         $project: {
           title: 1,
           price: 1,
-          market:1,
+          market: 1,
           images: 1,
           owner: 1,
           category: 1,
@@ -102,10 +105,18 @@ exports.getSimilarProducts = async (req, res) => {
     const urls = await getMediaUrls(keys);
 
     // 5) إلحاق URLs في كل منتج
-    similar = similar.map((p, i) => ({
-      ...p,
-      image: urls[i] || null,
-    }));
+    similar = await Promise.all(
+      similar.map(async (p, i) => {
+        const image = urls[i] || null;
+
+        if (p.owner?.photo) {
+          p.owner.photo = await replaceUserKeysWithUrls(p.owner.photo);
+        }
+
+        p.image = image;
+        return p;
+      })
+    );
 
     return res.json({ data: similar });
   } catch (err) {
